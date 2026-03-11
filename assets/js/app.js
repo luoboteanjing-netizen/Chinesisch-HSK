@@ -1,6 +1,6 @@
-/* r15: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
+/* r15.2 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
 let EXCEL_URL = './data/Long-Chinesisch_Lektionen.xlsx';
-const SHEET_NAME_PATTERN = /^L\s*\d{1,2}$/i; const MIN_LESSON=0, MAX_LESSON=16; const DATA_START_ROW=3;
+const SHEET_NAME_PATTERN = /^HSK\s*\d{1,2}$/i; const MIN_LESSON=0, MAX_LESSON=16; const DATA_START_ROW=3;
 const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
 const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
 
