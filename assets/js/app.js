@@ -207,28 +207,41 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
   loadExcel();
 
-  // NEU: Positioniere Autoplay-Button direkt neben "Training starten" (nach #btnStart in .top-actions) – mit Timeout für Timing und Debug
-  setTimeout(() => {  // 100ms Timeout, falls DOM noch rendert
+  // NEU: Verschiebe Autoplay unter Sliders, direkt neben/neben Training-Button – in dessen Parent, mit neuer Gruppe
+  setTimeout(() => {  // 100ms Timeout für volles Rendering
     const trainingBtn = $('#btnStart');
-    const topActions = $('.top-actions');  // Parent-Row
-    if (trainingBtn && autoplayBtn && topActions) {
+    if (trainingBtn && autoplayBtn) {
       const trainingParent = trainingBtn.parentNode;
       const autoplayParent = autoplayBtn.parentNode;
-      console.log('Debug Position: Training Parent:', trainingParent?.className, 'Autoplay Parent:', autoplayParent?.className);  // Log: Prüfe, ob selber Parent
-      if (trainingParent === topActions && autoplayParent === topActions) {  // Nur wenn beide im selben Container
-        console.log('Verschiebe Autoplay nach Training...');  // Debug-Log
-        // Entferne Autoplay aus aktueller Position
-        if (autoplayParent) autoplayParent.removeChild(autoplayBtn);
-        // Füge direkt nach Training-Button ein
-        topActions.insertBefore(autoplayBtn, trainingBtn.nextSibling);
-        console.log('Verschiebung abgeschlossen.');  // Debug-Log
-      } else {
-        console.warn('Autoplay und Training nicht im selben Parent – nutze CSS order als Fallback.');  // Warnung: CSS übernimmt
+      console.log('Debug Position: Training Parent:', trainingParent?.className || trainingParent?.tagName || 'unbekannt', 'Autoplay Parent:', autoplayParent?.className || autoplayParent?.tagName || 'unbekannt');  // Log: Zeigt Parent (z.B. "div", ".config-section")
+
+      // Entferne Autoplay aus oberer Position
+      if (autoplayParent && autoplayParent.contains(autoplayBtn)) {
+        autoplayParent.removeChild(autoplayBtn);
+        console.log('Autoplay aus oberer Position entfernt.');  // Debug
       }
+
+      // Prüfe, ob Training-Parent schon eine Flex-Gruppe hat; sonst erstelle .training-group
+      let group = trainingParent.querySelector('.training-group');
+      if (!group) {
+        // Erstelle neue Flex-Gruppe um Training-Button
+        group = document.createElement('div');
+        group.className = 'training-group';
+        trainingParent.insertBefore(group, trainingBtn);
+        group.appendChild(trainingBtn);
+        console.log('Neue .training-group um Training erstellt.');  // Debug
+      }
+
+      // Füge Autoplay in die Gruppe ein (direkt nach Training)
+      group.appendChild(autoplayBtn);
+      console.log('Autoplay in Gruppe unter Sliders platziert – neben Training.');  // Debug
+
+      // Bestätige finale Position
+      console.log('Finale Parent von Autoplay:', autoplayBtn.parentNode?.className || autoplayBtn.parentNode?.tagName);
     } else {
-      console.warn('Buttons oder Container nicht gefunden.');  // Debug-Log
+      console.warn('Training- oder Autoplay-Button nicht gefunden.');  // Debug
     }
-  }, 100);  // Kurzer Delay für sicheres Rendering
+  }, 100);  // Kurzer Delay
 
   // Voice panels
   $('#btnVoiceDe').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('de'); });

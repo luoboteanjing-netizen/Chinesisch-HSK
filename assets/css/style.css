@@ -14,25 +14,49 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer; flex-shrink: 1;} /* Global: Buttons schrumpfen leicht bei Bedarf */
 .btn.small{padding:6px 10px;font-size:12px}
 .btn.large{padding:10px 16px;font-size:14px;font-weight:600}
-.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex: 0 1 auto; /* FIX: Kein Grow (nicht volle Breite), Schrumpfen bei Bedarf */ white-space: nowrap; transition: all 0.2s ease; max-width: none;} /* Training-Button: Kompakter, verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex: 0 1 auto; white-space: nowrap; transition: all 0.2s ease; max-width: none;} /* Training-Button: Kompakter, verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
 .btn.ghost{background:transparent}
 
-/* NEU: CSS-Positionierung via order (Fallback, falls JS-Verschiebung fehlschlägt) – Autoplay direkt nach Training */
-/* Angenommen HTML-Reihenfolge: Training zuerst, Autoplay danach – order stellt sicher, dass Autoplay neben Training sitzt */
+/* FIX: Speziell für Training-Button – kompakte Breite (nicht 100% oder flex:1), unabhängig von Parent */
 #btnStart {
-  order: 1; /* Training-Button zuerst in der Flex-Row */
+  width: auto !important; /* FIX: Nur Inhaltsbreite (Text + Padding) */
+  flex: none !important; /* Kein Grow/Shrink über Inhalt */
+  display: inline-block !important; /* Inline, um in Row zu passen */
+  max-width: none !important; /* Entfernt Breitenbeschränkungen */
+  min-width: 120px; /* Minimale Breite für "Training stoppen ■" */
 }
+
+/* NEU: Gruppe für Training + Autoplay (unter Sliders) – Flex-Row für nebeneinander */
+.training-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center; /* Zentriert die Gruppe */
+  margin-top: 12px; /* Abstand zu Sliders oben */
+  flex-wrap: wrap; /* Auf Mobile stackt es vertikal */
+}
+
+/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
+#btnAutoplay.primary {
+  background: #7aa2f7 !important;
+  border-color: #7aa2f7 !important;
+  color: #081018 !important;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
+  flex: 0 1 auto; /* Kompakt, dynamisch */
+  width: auto !important; /* FIX: Gleiche kompakte Breite wie Training */
+  display: inline-block !important;
+  max-width: none !important;
+}
+
+/* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
 #btnAutoplay {
-  order: 2; /* Autoplay direkt danach (neben Training) */
-}
-/* Andere Buttons (z.B. Order-Toggle) höhere Order, damit sie folgen */
-#btnOrderToggle {
-  order: 3; /* Bleibt danach */
-}
-/* Speziell: Enge Gruppierung für Training- und Autoplay-Buttons (kleinerer Gap dazwischen) */
-.top-actions #btnStart + #btnAutoplay,
-.top-actions #btnAutoplay { /* + für direkte Nachbarn, Fallback falls order */
-  margin-left: 6px; /* Kleinerer Abstand zwischen den beiden Primary-Buttons */
+  min-width: 130px; /* Ca. 20% breiter als Standard (~110px Basis), aber als Minimum (dynamisch) */
+  padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
+  flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
+  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
+  font-weight: 600; /* Leicht bolder für Prominenz (wird zu 700 bei .primary) */
 }
 
 /* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
@@ -50,26 +74,6 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   text-align: center; /* Text zentriert (Fallback) */
   line-height: 1.2; /* Etwas mehr Zeilenhöhe für den Text */
   white-space: nowrap; /* Verhindert Umbruch des Texts */
-}
-
-/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
-#btnAutoplay.primary {
-  background: #7aa2f7 !important;
-  border-color: #7aa2f7 !important;
-  color: #081018 !important;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
-  flex: 0 1 auto; /* FIX: Gleiche Breite-Logik wie Training – kompakt, dynamisch */
-}
-
-/* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
-#btnAutoplay {
-  min-width: 130px; /* Ca. 20% breiter als Standard (~110px Basis), aber als Minimum (dynamisch) */
-  padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
-  flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
-  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
-  font-weight: 600; /* Leicht bolder für Prominenz (wird zu 700 bei .primary) */
 }
 
 .card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
@@ -216,10 +220,16 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     gap: 6px; /* Kleinerer Gap auf Mobile, für mehr horizontale Flexibilität (vermeidet Wrap) */
   }
   
-  /* NEU: Auf Mobile: Autoplay direkt unter/nah am Training-Button (via Order) */
-  .top-actions #btnStart + #btnAutoplay,
-  .top-actions #btnAutoplay {
-    margin-left: 4px; /* Noch enger auf Mobile */
+  /* FIX: Auf Mobile: Training kompakt */
+  #btnStart {
+    min-width: 100px; /* Kleiner min-width auf Mobile */
+  }
+  
+  /* NEU: Gruppe auf Mobile: Stack vertikal */
+  .training-group {
+    gap: 8px;
+    justify-content: center;
+    flex-direction: column; /* Stack: Autoplay unter Training */
   }
   
   .btn.primary {
