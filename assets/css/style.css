@@ -30,6 +30,15 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   white-space: nowrap; /* Verhindert Umbruch des Texts */
 }
 
+/* NEU: Autoplay-Button ca. 20% breiter machen (min-width: 140px, mehr Padding horizontal) */
+#btnAutoplay {
+  min-width: 140px; /* Ca. 20% breiter als Standard-Button (~120px Basis) */
+  padding: 8px 18px; /* Etwas mehr horizontaler Innenabstand für Balance und Breite */
+  flex: 1 1 auto; /* Streckt sich in Flex-Container (z.B. .top-actions), aber priorisiert Breite */
+  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎") */
+  font-weight: 600; /* Leicht bolder für Prominenz */
+}
+
 .card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
 .lbl{display:block;margin-bottom:6px;color:var(--muted)}
 
@@ -182,6 +191,13 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     padding: 10px 16px; /* Etwas kompakter Padding */
     min-height: 50px; /* Reduziert für Mobile */
     font-size: 13px; /* Kleinerer Text auf Mobile */
+  }
+  
+  /* NEU: Autoplay-Button auf Mobile etwas kompakter (aber immer noch breiter als Standard) */
+  #btnAutoplay {
+    min-width: 120px; /* Ca. 20% breiter als Standard auf Mobile (~100px Basis) */
+    padding: 8px 16px; /* Etwas weniger Padding, um in enger Row zu passen */
+    flex: 1 1 auto; /* Bleibt flexibel */
   }
   
   /* Responsive für Language/Swap-Row auf Mobile */
