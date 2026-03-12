@@ -107,7 +107,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .gap-row .lbl,
 #gapRange ~ label, /* Falls das Label nach dem Slider kommt */
 #gapVal + label { /* Oder wenn es neben/vorher ist */
-  font-size: 12px; /* Default-Größe wie .small-label oder .hint – unverändert */
+  font-size: 14px; /* Default-Größe wie .small-label oder .hint – unverändert */
   color: var(--muted); /* Farbe bleibt hellgrau */
 }
 
@@ -118,7 +118,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 /* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
 @media (min-width: 1024px) {
   :root {
-    --bg: #1a1a2e; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
+    --bg: #2d3748; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
   }
   
   html, body {
