@@ -1,5 +1,4 @@
 /* r15.2.6 styles (Umschaltbtn größer, breiter,schriftgrößen angepasst, Abstände, Farbe) */
-/* r15 styles (same as r14) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -14,30 +13,26 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px;} /* Zusätzlicher Abstand für den Start-Button (z.B. "Training starten") */
 .btn.ghost{background:transparent}
 
-/* Breitere Swap/Direction-Button (für Umschalten der Richtung) */
+/* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
 .btn.swap {
-  font-weight: 700; /* Etwas leichter als 800, für Balance */
-  padding: 10px 20px; /* Noch breiter – nutzt verfügbaren Platz */
-  font-size: 16px; /* Größere Schrift für den Button-Text */
+  font-weight: 700; /* Bold für den Text */
+  padding: 12px 20px; /* Höheres Padding (vertikal mehr für Zentrierung und Präsenz) */
+  font-size: 14px; /* Geändert: Größere Schrift für den gesamten Text ("< Richtung >") */
   border-radius: 12px; /* Etwas abgerundeter für modernen Look */
   min-width: 100px; /* Minimale Breite, damit er sich ausdehnt */
+  min-height: 60px; /* Höher für bessere Sichtbarkeit und Berührbarkeit */
   flex: 1 1 auto; /* Teilt Platz mit den Nachbarn */
-}
-
-/* Speziell für das Icon/Zeichen im Swap-Button (z.B. Pfeil-Symbol) – größer gemacht */
-.btn.swap::before,
-.btn.swap i,
-.btn.swap svg,
-.btn.swap [class*="icon"] { /* Deckt Text-Icons, <i>-Tags, SVG ab */
-  font-size: 20px; /* Geändert: Noch größer (von 18px) für bessere Sichtbarkeit */
-  line-height: 1.2; /* Bessere Zentrierung */
-  transform: scale(1.2); /* Geändert: Stärkeres Skalieren für mehr Präsenz (von 1.1) */
-  display: inline-block;
-  margin-right: 4px; /* Kleiner Abstand zum Text, falls vorhanden */
+  display: flex; /* Flexbox für perfekte Zentrierung */
+  align-items: center; /* Vertikal zentriert */
+  justify-content: center; /* Horizontal zentriert */
+  text-align: center; /* Text zentriert (Fallback) */
+  line-height: 1.2; /* Etwas mehr Zeilenhöhe für den Text */
+  white-space: nowrap; /* Verhindert Umbruch des Texts */
 }
 
 .card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
 .lbl{display:block;margin-bottom:6px;color:var(--muted)}
+
 .hint{color:var(--muted);font-size:12px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .pane{border:1px solid var(--border);border-radius:10px;padding:12px}
@@ -69,9 +64,9 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 #dbgVoices .voice .meta{font-size:12px;color:#b6c2d0}
 #dbgVoices .voice .name{font-weight:700}
 
-.mode-inline{display:flex;gap:12px;align-items:center;flex-wrap:wrap; justify-content: space-around;} /* Mehr Gap und space-around, um Platz zwischen den 3 Elementen zu nutzen */
-.actions-inline{display:flex;gap:12px;align-items:center;flex-wrap:wrap; justify-content: space-around;} /* Gleiches für actions-inline, falls dort die Row ist */
-.mode-item{background:#0f141b;border:1px solid #293241;border-radius:8px;padding:6px 16px;font-weight:700; min-width:80px; flex:1 1 auto; display: flex; align-items: center; justify-content: center; text-align: center;} /* NEU: Zentrierung der Beschriftungen (z.B. "DE"/"ZH") – horizontal/vertikal perfekt */
+.mode-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Mehr Gap für Balance mit höherem Button */
+.actions-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Gleiches für actions-inline */
+.mode-item{background:#0f141b;border:1px solid #293241;border-radius:8px;padding:6px 16px;font-weight:700; min-width:80px; flex:1 1 auto; display: flex; align-items: center; justify-content: center; text-align: center;} /* Zentrierung der Beschriftungen (z.B. "DE"/"ZH") – horizontal/vertikal perfekt */
 .btn.swap{font-weight:800;padding:6px 10px}
 .gap-row input[type=range]{width:100%}
 
@@ -112,6 +107,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 /* Kleinerer Abstand der Labels zu den Sliders (ZH und DE) */
 .voice-config .lbl { /* Überschreibt den globalen .lbl-Margin */
   margin-bottom: 2px; /* Stark reduziert: Labels sehr nah an den Sliders darunter */
+  text-align: left; /* Andere Labels (z.B. in Voice-Config) bleiben linksbündig */
 }
 
 #rateZhVal, #pitchZhVal { /* Werte-Anzeigen nah am Slider */
@@ -181,11 +177,18 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
   }
   
-  /* Responsive für breitere Language/Swap-Elemente auf Mobile */
+  /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */
+  .btn.swap {
+    padding: 10px 16px; /* Etwas kompakter Padding */
+    min-height: 50px; /* Reduziert für Mobile */
+    font-size: 13px; /* Kleinerer Text auf Mobile */
+  }
+  
+  /* Responsive für Language/Swap-Row auf Mobile */
   .mode-inline,
   .actions-inline {
-    gap: 8px; /* Kleinerer Gap auf Mobile */
-    justify-content: space-between; /* Passt sich an, falls wrappt */
+    gap: 10px; /* Kleinerer Gap auf Mobile */
+    justify-content: center; /* Center für Ausrichtung */
   }
   
   .mode-item {
@@ -195,21 +198,6 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     align-items: center;
     justify-content: center;
     text-align: center; /* Zentrierung bleibt auf Mobile */
-  }
-  
-  .btn.swap {
-    padding: 8px 16px; /* Kompakter auf Mobile, aber breiter als Default */
-    min-width: 90px;
-    font-size: 14px;
-  }
-  
-  /* NEU: Icon auf Mobile etwas kleiner, um nicht zu dominant zu sein */
-  .btn.swap::before,
-  .btn.swap i,
-  .btn.swap svg,
-  .btn.swap [class*="icon"] {
-    font-size: 18px; /* Reduziert auf Mobile (von 20px) */
-    transform: scale(1.1); /* Leichter Scale (von 1.2) */
   }
   
   .voice-btn,

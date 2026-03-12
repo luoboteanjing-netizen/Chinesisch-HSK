@@ -1,4 +1,4 @@
-/* r15.3 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
+/* r15.4 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
 let EXCEL_URL = './data/HSK_Lektionen.xlsx';
 const DATA_START_ROW=3;
 const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
@@ -180,6 +180,18 @@ window.addEventListener('DOMContentLoaded', ()=>{
   state.pitchZh = typeof state.settings.pitchZh==='number'? state.settings.pitchZh : 1.0;
   renderModeUI(); updateAutoplayBtn();
 
+  // NEU: Setze den Text des Swap-Buttons auf "< Richtung >" (ersetzt Icon und integriert "Richtung" – Platz sparen, höher machen via CSS)
+  const swapBtn = $('#btnSwapMode');
+  if (swapBtn) {
+    swapBtn.textContent = '< Richtung >';  // Zeigt die < > als Literal-Text (keine HTML-Entities nötig mit textContent)
+  }
+
+  // Optional: Verstecke oder entferne das separate "Richtung"-Label (angenommen ID="lblRichtung" oder Klasse ".direction-label" – passe bei Bedarf an)
+  const directionLabel = document.querySelector('#lblRichtung') || document.querySelector('.direction-label') || document.querySelector('.lbl:has(~ .mode-inline)');  // Fallback-Selektoren basierend auf CSS
+  if (directionLabel) {
+    directionLabel.style.display = 'none';  // Versteckt das Label (spart Höhe); oder .remove() zum Entfernen
+  }
+
   const gapSec = (state.autoplay.gapMs/1000).toFixed(1); $('#gapRange').value = gapSec; $('#gapVal').textContent = `(${gapSec} s)`;
   $('#rateDeRange').value=String(state.rateDe); $('#rateDeVal').textContent=`(${state.rateDe.toFixed(2)})`;
   $('#pitchDeRange').value=String(state.pitchDe); $('#pitchDeVal').textContent=`(${state.pitchDe.toFixed(2)})`;
@@ -236,8 +248,3 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnExport').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state.progress,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='progress.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); });
   $('#fileImport').addEventListener('change', e=>{ stopAutoplayOnUserAction(); const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const p=JSON.parse(r.result); if(p && p.version==='v1'){ state.progress=p; saveProgress(); populateLessonSelect(); alert('Fortschritt importiert.'); } else alert('Ungültiges Format.'); }catch(err){ alert('Import fehlgeschlagen: '+err.message); } }; r.readAsText(f); e.target.value=''; });
 });
-
-
-
-
-
