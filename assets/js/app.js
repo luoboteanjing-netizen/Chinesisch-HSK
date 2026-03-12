@@ -1,6 +1,6 @@
-/* r15.2 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
+/* r15.3 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
 let EXCEL_URL = './data/Long-Chinesisch_Lektionen.xlsx';
-const SHEET_NAME_PATTERN = /^HSK\s*\d{1,2}(-\d{1,2})?$/i; const MIN_LESSON=0, MAX_LESSON=22; const DATA_START_ROW=3;
+const DATA_START_ROW=3;
 const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
 const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
 
@@ -45,14 +45,14 @@ function refreshVoices(){ state.voices = window.speechSynthesis?.getVoices?.() |
 let _voicesRetryT; function openVoicesPanelFor(target){ state.voicePanelTarget=target; refreshVoices(); if(!state.voices || state.voices.length===0){ clearTimeout(_voicesRetryT); let tries=0; const tick=()=>{ tries++; refreshVoices(); if(state.voices.length>0 || tries>=8) return; _voicesRetryT=setTimeout(tick,300); }; _voicesRetryT=setTimeout(tick,300); } $('#voicePanel').classList.remove('hidden'); }
 function closeVoices(){ $('#voicePanel').classList.add('hidden'); }
 
-async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ if(!SHEET_NAME_PATTERN.test(name)) continue; const m=name.match(/\d+/); if(!m) continue; const n=parseInt(m[0],10); if(!(n>=MIN_LESSON&&n<=MAX_LESSON)) continue; const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=String(n); if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos}); } }
+async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=name; if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos}); } }
   populateLessonSelect(); }
 
 async function loadExcel(){ try{ const res=await fetch(EXCEL_URL,{cache:'no-store'}); const buf=await res.arrayBuffer(); await parseExcelBuffer(buf); }catch(e){ console.error('Excel konnte nicht geladen werden:',e); alert('Konnte Datei nicht laden.'); } }
 
 function ensureBL(lessonKey){ const bl=state.progress.byLesson; bl[lessonKey]=bl[lessonKey]||{ known:0, unknown:0 }; return bl[lessonKey]; }
 
-function populateLessonSelect(){ const sel=$('#lessonSelect'); sel.innerHTML=''; const keys=Array.from(state.lessons.keys()).map(k=>parseInt(k,10)).sort((a,b)=>a-b); for(const k of keys){ const total=state.lessons.get(String(k)).length; const bl=state.progress.byLesson?.[String(k)]||{known:0,unknown:0}; const known=bl.known||0, unknown=bl.unknown||0; const opt=document.createElement('option'); opt.value=String(k); opt.textContent=`HSK ${k} (${total}) · Richtig ${known} · Falsch ${unknown}`; if(state.settings.lessons?.includes(String(k))) opt.selected=true; sel.appendChild(opt); } }
+function populateLessonSelect(){ const sel=$('#lessonSelect'); sel.innerHTML=''; const keys=Array.from(state.lessons.keys()).sort(); for(const k of keys){ const total=state.lessons.get(k).length; const bl=state.progress.byLesson?.[k]||{known:0,unknown:0}; const known=bl.known||0, unknown=bl.unknown||0; const opt=document.createElement('option'); opt.value=k; opt.textContent=`${k} (${total}) · Richtig ${known} · Falsch ${unknown}`; if(state.settings.lessons?.includes(k)) opt.selected=true; sel.appendChild(opt); } }
 
 function resetSessionStats(){ state.session={ total:state.pool.length, done:0, known:0, unsure:0, unknown:0, ttrSum:0, ttrCount:0 }; renderSessionStats(); }
 
@@ -236,3 +236,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnExport').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state.progress,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='progress.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); });
   $('#fileImport').addEventListener('change', e=>{ stopAutoplayOnUserAction(); const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const p=JSON.parse(r.result); if(p && p.version==='v1'){ state.progress=p; saveProgress(); populateLessonSelect(); alert('Fortschritt importiert.'); } else alert('Ungültiges Format.'); }catch(err){ alert('Import fehlgeschlagen: '+err.message); } }; r.readAsText(f); e.target.value=''; });
 });
+
+
+
+
+
