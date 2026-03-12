@@ -33,7 +33,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   align-items: center;
   justify-content: center; /* Zentriert die Gruppe */
   margin-top: 12px; /* Abstand zu Sliders oben */
-  flex-wrap: wrap; /* Auf Mobile stackt es vertikal */
+  flex-wrap: nowrap; /* NEU: Immer single-line auf Desktop (kein Wrap für die beiden Buttons) */
 }
 
 /* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
@@ -50,9 +50,9 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   max-width: none !important;
 }
 
-/* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
+/* Dynamisch breiterer Autoplay-Button (ca. 15% breiter als Standard, aber flexibel – passt sich an Nachbarn an) */
 #btnAutoplay {
-  min-width: 130px; /* Ca. 20% breiter als Standard (~110px Basis), aber als Minimum (dynamisch) */
+  min-width: 110px; /* NEU: Etwas schmaler (110px statt 130px), damit + Training immer in einer Zeile passt (~230px Gesamt) */
   padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
   flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
   white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
@@ -229,7 +229,8 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   .training-group {
     gap: 8px;
     justify-content: center;
-    flex-direction: column; /* Stack: Autoplay unter Training */
+    flex-wrap: wrap; /* Auf Mobile: Erlaubt Wrap/Stack */
+    flex-direction: row; /* Bleibt horizontal, wrapt bei Bedarf */
   }
   
   .btn.primary {
@@ -244,9 +245,9 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     font-size: 13px; /* Kleinerer Text auf Mobile */
   }
   
-  /* NEU: Dynamisch breiterer Autoplay-Button auf Mobile (flexibel, passt sich an) */
+  /* NEU: Schmalerer Autoplay-Button auf Mobile (flexibel, passt sich an) */
   #btnAutoplay {
-    min-width: 110px; /* Ca. 20% breiter als Standard auf Mobile (~90px Basis), aber dynamisch */
+    min-width: 100px; /* NEU: Noch schmaler auf Mobile (100px), um in enger Row zu passen */
     padding: 8px 14px; /* Weniger Padding für enge Screens */
     flex: 0 1 auto; /* Bleibt flexibel – schrumpft bei Bedarf */
   }
