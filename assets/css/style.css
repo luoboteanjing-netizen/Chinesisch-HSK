@@ -1,16 +1,16 @@
-/* r15.2.3 styles (schriftgrößen angepasst, Abstände, Farbe) */
+/* r15.2.4 styles (schriftgrößen angepasst, Abstände, Farbe) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
 .container{max-width:1100px;margin:24px auto;padding:0 12px}
 header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .subtitle{margin:0 0 8px 0;color:var(--muted);font-size:14px}
-.top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px; margin-top:16px;} /* NEU: Größerer Abstand nach oben für "Training starten"-Bereich */
 .small-label{font-size:12px;margin-right:2px}
 .btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer}
 .btn.small{padding:6px 10px;font-size:12px}
 .btn.large{padding:10px 16px;font-size:14px;font-weight:600}
-.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700}
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px;} /* NEU: Zusätzlicher Abstand für den Start-Button (z.B. "Training starten") */
 .btn.ghost{background:transparent}
 .card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
 .lbl{display:block;margin-bottom:6px;color:var(--muted)}
@@ -111,9 +111,9 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   }
 }
 
-/* KONSISTENZ-REGELN: Einheitliche Schriftgröße (14px) für Labels, Werte und Buttons in Voice- und Gap-Bereichen */
+/* KONSISTENZ-REGELN: Einheitliche Schriftgröße (14px) für Labels und Buttons in Voice- und Gap-Bereichen */
 .voice-btn { /* Buttons: "DE Stimme", "ZH Stimme" */
-  font-size: 14px; /* Einheitlich: Passt zu Labels/Werten */
+  font-size: 14px; /* Einheitlich: Passt zu Labels */
   font-weight: 500; /* Optional: Etwas fett für Buttons */
 }
 
@@ -122,37 +122,51 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   color: var(--muted); /* Hellgrau, wie gewünscht */
 }
 
-#rateZhVal, #pitchZhVal,
-#rateDeVal, #pitchDeVal { /* Anzeigewerte: "(0.95)", "(1.0)" etc. für DE/ZH */
-  font-size: 14px; /* Einheitlich: Gleich wie Labels */
-  font-weight: 500;
-}
-
 .gap-row .lbl { /* Label: "Pausenzeit zwischen Karten" */
-  font-size: 14px; /* Erhöht auf einheitlichen Wert (war 12px) */
+  font-size: 14px; /* Einheitlich */
   color: var(--muted);
 }
 
+/* NEU: Anzeigewerte auf 12px (kleiner als Labels/Buttons für Dezenz) */
+#rateZhVal, #pitchZhVal,
+#rateDeVal, #pitchDeVal { /* Anzeigewerte: "(0.95)", "(1.0)" etc. für DE/ZH */
+  font-size: 12px; /* Geändert: Kleiner für bessere Hierarchie */
+  font-weight: 500;
+}
+
 #gapVal { /* Anzeigewert: "(0.8 s)" für Pausenzeit */
-  font-size: 14px; /* Einheitlich: Gleich wie andere Werte */
+  font-size: 12px; /* Geändert: Gleich wie andere Anzeigewerte */
   font-weight: 500;
 }
 
 /* Optional: Falls die gesamte Voice-Config-Sektion (DE/ZH) einheitlich sein soll */
 .voice-config .two-col > *,
 #voiceZhConfig > *,
-#voiceDeConfig > * { /* Alle Kinder in Voice-Panels */
-  font-size: 14px; /* Globale Einheitlichkeit – überschreibt kleinere Defaults */
+#voiceDeConfig > * { /* Alle Kinder in Voice-Panels – Labels bleiben 14px, Werte 12px */
+  font-size: 14px; /* Globale Einheitlichkeit für Nicht-Werte-Elemente */
 }
 
-/* Responsive Anpassung: Auf Mobile etwas kleiner (13px) für alle genannten Elemente */
+/* Responsive Anpassung: Auf Mobile etwas kleiner für alle genannten Elemente */
 @media (max-width: 480px) {
+  /* NEU: Kleinerer Abstand für "Training starten" auf Mobile */
+  .top-actions {
+    margin-top: 12px; /* Reduziert, um Platz zu sparen */
+  }
+  
+  .btn.primary {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+  }
+  
   .voice-btn,
   .voice-config .lbl,
+  .gap-row .lbl {
+    font-size: 13px; /* Labels/Buttons etwas kleiner auf Mobile */
+  }
+  
+  /* Anzeigewerte auf Mobile: 11px */
   #rateZhVal, #pitchZhVal, #rateDeVal, #pitchDeVal,
-  .gap-row .lbl,
   #gapVal {
-    font-size: 13px; /* Etwas kleiner, aber immer noch einheitlich */
+    font-size: 11px; /* Geändert: Passt zur Skalierung */
   }
   
   .voice-config {
