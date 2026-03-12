@@ -66,7 +66,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 
 /* NEUE REGELN: Anpassung der Schriftgröße für ZH Tempo (Rate) und ZH Tonhöhe (Pitch) */
 #rateZhRange, #pitchZhRange {
-  font-size: 16px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
+  font-size: 14px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
 }
 
 #rateZhVal, #pitchZhVal {
@@ -142,11 +142,11 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 @media (max-width: 480px) {
   #rateZhVal, #pitchZhVal,
   .voice-config .lbl {
-    font-size: 13px; /* Etwas kleiner auf Mobile, aber lesbar */
+    font-size: 14px; /* Etwas kleiner auf Mobile, aber lesbar */
   }
   
   .voice-config {
-    gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+    gap: 8px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
   }
   
   /* Abstände auf Mobile: Etwas angepasst, um Engpässe zu vermeiden */
@@ -155,12 +155,12 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   }
   
   .voice-config .lbl {
-    margin-bottom: 3px; /* Etwas mehr Abstand auf kleinen Screens */
+    margin-bottom: 1px; /* Etwas mehr Abstand auf kleinen Screens */
   }
   
   /* Gap-Label auf Mobile: Bleibt bei Default-Größe */
   .gap-row .lbl,
   #gapRange ~ label {
-    font-size: 11px; /* Optional: Etwas kleiner auf Mobile, falls es zu eng wird */
+    font-size: 14px; /* Optional: Etwas kleiner auf Mobile, falls es zu eng wird */
   }
 }
