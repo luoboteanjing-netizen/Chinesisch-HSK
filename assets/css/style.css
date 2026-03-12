@@ -10,25 +10,30 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .top-actions > * {
   flex-shrink: 1; /* Ermöglicht Schrumpfen bei Text-Änderungen, statt Wrap */
 }
-/* Speziell: Enge Gruppierung für Training- und Autoplay-Buttons (kleinerer Gap dazwischen) */
-.top-actions #btnStart + #btnAutoplay {
-  margin-left: 8px; /* Kleinerer Abstand zwischen den beiden Primary-Buttons */
-}
 .small-label{font-size:12px;margin-right:2px}
 .btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer; flex-shrink: 1;} /* Global: Buttons schrumpfen leicht bei Bedarf */
 .btn.small{padding:6px 10px;font-size:12px}
 .btn.large{padding:10px 16px;font-size:14px;font-weight:600}
-.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex-shrink: 1; white-space: nowrap; transition: all 0.2s ease;} /* Training-Button: Schrumpft und verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
-/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
-#btnAutoplay.primary {
-  background: #7aa2f7 !important;
-  border-color: #7aa2f7 !important;
-  color: #081018 !important;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
-}
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex: 0 1 auto; /* FIX: Kein Grow (nicht volle Breite), Schrumpfen bei Bedarf */ white-space: nowrap; transition: all 0.2s ease; max-width: none;} /* Training-Button: Kompakter, verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
 .btn.ghost{background:transparent}
+
+/* NEU: CSS-Positionierung via order (Fallback, falls JS-Verschiebung fehlschlägt) – Autoplay direkt nach Training */
+/* Angenommen HTML-Reihenfolge: Training zuerst, Autoplay danach – order stellt sicher, dass Autoplay neben Training sitzt */
+#btnStart {
+  order: 1; /* Training-Button zuerst in der Flex-Row */
+}
+#btnAutoplay {
+  order: 2; /* Autoplay direkt danach (neben Training) */
+}
+/* Andere Buttons (z.B. Order-Toggle) höhere Order, damit sie folgen */
+#btnOrderToggle {
+  order: 3; /* Bleibt danach */
+}
+/* Speziell: Enge Gruppierung für Training- und Autoplay-Buttons (kleinerer Gap dazwischen) */
+.top-actions #btnStart + #btnAutoplay,
+.top-actions #btnAutoplay { /* + für direkte Nachbarn, Fallback falls order */
+  margin-left: 6px; /* Kleinerer Abstand zwischen den beiden Primary-Buttons */
+}
 
 /* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
 .btn.swap {
@@ -45,6 +50,17 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   text-align: center; /* Text zentriert (Fallback) */
   line-height: 1.2; /* Etwas mehr Zeilenhöhe für den Text */
   white-space: nowrap; /* Verhindert Umbruch des Texts */
+}
+
+/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
+#btnAutoplay.primary {
+  background: #7aa2f7 !important;
+  border-color: #7aa2f7 !important;
+  color: #081018 !important;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
+  flex: 0 1 auto; /* FIX: Gleiche Breite-Logik wie Training – kompakt, dynamisch */
 }
 
 /* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
@@ -200,13 +216,15 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     gap: 6px; /* Kleinerer Gap auf Mobile, für mehr horizontale Flexibilität (vermeidet Wrap) */
   }
   
-  /* NEU: Auf Mobile: Autoplay direkt unter/nah am Training-Button (via Order, falls nötig) */
-  .top-actions #btnStart + #btnAutoplay {
+  /* NEU: Auf Mobile: Autoplay direkt unter/nah am Training-Button (via Order) */
+  .top-actions #btnStart + #btnAutoplay,
+  .top-actions #btnAutoplay {
     margin-left: 4px; /* Noch enger auf Mobile */
   }
   
   .btn.primary {
     margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+    flex: 0 1 auto; /* Bleibt kompakt auf Mobile */
   }
   
   /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */

@@ -192,20 +192,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
     directionLabel.style.display = 'none';  // Versteckt das Label (spart Höhe); oder .remove() zum Entfernen
   }
 
-  // NEU: Positioniere Autoplay-Button direkt neben "Training starten" (nach #btnStart in .top-actions)
-  const trainingBtn = $('#btnStart');
-  const autoplayBtn = $('#btnAutoplay');
-  const topActions = $('.top-actions');  // Parent-Row
-  if (trainingBtn && autoplayBtn && topActions && topActions.contains(trainingBtn) && topActions.contains(autoplayBtn)) {
-    // Entferne Autoplay aus aktueller Position
-    autoplayBtn.parentNode.removeChild(autoplayBtn);
-    // Füge direkt nach Training-Button ein
-    topActions.insertBefore(autoplayBtn, trainingBtn.nextSibling);
-  }
-
   // NEU: Füge .primary-Klasse zum Autoplay-Button hinzu (für blaue Farbe, wie Training-Button)
+  const autoplayBtn = $('#btnAutoplay');
   if (autoplayBtn) {
     autoplayBtn.classList.add('primary');
+    console.log('Autoplay-Button: Primary-Klasse hinzugefügt');  // Debug-Log
   }
 
   const gapSec = (state.autoplay.gapMs/1000).toFixed(1); $('#gapRange').value = gapSec; $('#gapVal').textContent = `(${gapSec} s)`;
@@ -215,6 +206,29 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#pitchZhRange').value=String(state.pitchZh); $('#pitchZhVal').textContent=`(${state.pitchZh.toFixed(2)})`;
 
   loadExcel();
+
+  // NEU: Positioniere Autoplay-Button direkt neben "Training starten" (nach #btnStart in .top-actions) – mit Timeout für Timing und Debug
+  setTimeout(() => {  // 100ms Timeout, falls DOM noch rendert
+    const trainingBtn = $('#btnStart');
+    const topActions = $('.top-actions');  // Parent-Row
+    if (trainingBtn && autoplayBtn && topActions) {
+      const trainingParent = trainingBtn.parentNode;
+      const autoplayParent = autoplayBtn.parentNode;
+      console.log('Debug Position: Training Parent:', trainingParent?.className, 'Autoplay Parent:', autoplayParent?.className);  // Log: Prüfe, ob selber Parent
+      if (trainingParent === topActions && autoplayParent === topActions) {  // Nur wenn beide im selben Container
+        console.log('Verschiebe Autoplay nach Training...');  // Debug-Log
+        // Entferne Autoplay aus aktueller Position
+        if (autoplayParent) autoplayParent.removeChild(autoplayBtn);
+        // Füge direkt nach Training-Button ein
+        topActions.insertBefore(autoplayBtn, trainingBtn.nextSibling);
+        console.log('Verschiebung abgeschlossen.');  // Debug-Log
+      } else {
+        console.warn('Autoplay und Training nicht im selben Parent – nutze CSS order als Fallback.');  // Warnung: CSS übernimmt
+      }
+    } else {
+      console.warn('Buttons oder Container nicht gefunden.');  // Debug-Log
+    }
+  }, 100);  // Kurzer Delay für sicheres Rendering
 
   // Voice panels
   $('#btnVoiceDe').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('de'); });
