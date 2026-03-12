@@ -1,4 +1,4 @@
-/* r15.2.2 styles (schriftgrößen angepasst, Abstände, Farbe) */
+/* r15.2.3 styles (schriftgrößen angepasst, Abstände, Farbe) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -66,34 +66,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 
 /* NEUE REGELN: Anpassung der Schriftgröße für ZH Tempo (Rate) und ZH Tonhöhe (Pitch) */
 #rateZhRange, #pitchZhRange {
-  font-size: 14px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
-}
-
-#rateZhVal, #pitchZhVal {
-  font-size: 14px; /* Schriftgröße für die angezeigten Werte (z.B. "(0.95)") */
-  font-weight: 500; /* Optional: Etwas fett für bessere Lesbarkeit */
-}
-
-.voice-config .lbl { /* Für Labels wie "ZH Tempo" oder "ZH Tonhöhe" in der Voice-Config */
-  font-size: 14px; /* Erhöht von default (z.B. 12px in .small-label) */
-  color: var(--muted); /* Zurück auf vorherige Farbe: Hellgrau, wie im Original-CSS */
-}
-
-/* SPEZIFISCHE REGEL: Schriftgröße für "Pausenzeit..." (Gap-Label) – genauso groß wie vorher */
-.gap-row .lbl,
-#gapRange ~ label,
-#gapVal + label {
-  font-size: 16px; /* Default-Größe wie .small-label oder .hint – unverändert */
-  color: var(--muted); /* Farbe bleibt hellgrau */
-}
-
-#gapVal { /* Der Wert-Anzeiger "(0.8 s)" bleibt klein */
-  font-size: 14px;
-}
-
-/* Optional: Falls die gesamte Voice-Config-Sektion größer werden soll */
-#voiceZhConfig .two-col > * { /* Angenommen, es gibt eine ID oder Klasse für ZH-Config */
-  font-size: 14px;
+  font-size: 16px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
 }
 
 /* NEUE REGELN: Abstände anpassen für ZH-Sektion (und DE, falls ähnlich) */
@@ -130,7 +103,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 /* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
 @media (min-width: 1024px) {
   :root {
-    --bg: #4a5568; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
+    --bg: #1a1a2e; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
   }
   
   html, body {
@@ -138,29 +111,59 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   }
 }
 
-/* Responsive Anpassung für kleine Bildschirme (optional, um es nicht zu klein zu machen) */
+/* KONSISTENZ-REGELN: Einheitliche Schriftgröße (14px) für Labels, Werte und Buttons in Voice- und Gap-Bereichen */
+.voice-btn { /* Buttons: "DE Stimme", "ZH Stimme" */
+  font-size: 14px; /* Einheitlich: Passt zu Labels/Werten */
+  font-weight: 500; /* Optional: Etwas fett für Buttons */
+}
+
+.voice-config .lbl { /* Labels: "ZH Tempo", "ZH Tonhöhe", "DE Tempo" etc. */
+  font-size: 14px; /* Einheitlich */
+  color: var(--muted); /* Hellgrau, wie gewünscht */
+}
+
+#rateZhVal, #pitchZhVal,
+#rateDeVal, #pitchDeVal { /* Anzeigewerte: "(0.95)", "(1.0)" etc. für DE/ZH */
+  font-size: 14px; /* Einheitlich: Gleich wie Labels */
+  font-weight: 500;
+}
+
+.gap-row .lbl { /* Label: "Pausenzeit zwischen Karten" */
+  font-size: 14px; /* Erhöht auf einheitlichen Wert (war 12px) */
+  color: var(--muted);
+}
+
+#gapVal { /* Anzeigewert: "(0.8 s)" für Pausenzeit */
+  font-size: 14px; /* Einheitlich: Gleich wie andere Werte */
+  font-weight: 500;
+}
+
+/* Optional: Falls die gesamte Voice-Config-Sektion (DE/ZH) einheitlich sein soll */
+.voice-config .two-col > *,
+#voiceZhConfig > *,
+#voiceDeConfig > * { /* Alle Kinder in Voice-Panels */
+  font-size: 14px; /* Globale Einheitlichkeit – überschreibt kleinere Defaults */
+}
+
+/* Responsive Anpassung: Auf Mobile etwas kleiner (13px) für alle genannten Elemente */
 @media (max-width: 480px) {
-  #rateZhVal, #pitchZhVal,
-  .voice-config .lbl {
-    font-size: 14px; /* Etwas kleiner auf Mobile, aber lesbar */
+  .voice-btn,
+  .voice-config .lbl,
+  #rateZhVal, #pitchZhVal, #rateDeVal, #pitchDeVal,
+  .gap-row .lbl,
+  #gapVal {
+    font-size: 13px; /* Etwas kleiner, aber immer noch einheitlich */
   }
   
   .voice-config {
-    gap: 8px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+    gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
   }
   
-  /* Abstände auf Mobile: Etwas angepasst, um Engpässe zu vermeiden */
   .voice-config > *:first-child {
     margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
   }
   
   .voice-config .lbl {
-    margin-bottom: 1px; /* Etwas mehr Abstand auf kleinen Screens */
-  }
-  
-  /* Gap-Label auf Mobile: Bleibt bei Default-Größe */
-  .gap-row .lbl,
-  #gapRange ~ label {
-    font-size: 14px; /* Optional: Etwas kleiner auf Mobile, falls es zu eng wird */
+    margin-bottom: 3px; /* Etwas mehr Abstand auf kleinen Screens */
   }
 }
