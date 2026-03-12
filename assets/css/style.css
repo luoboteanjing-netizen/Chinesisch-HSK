@@ -6,11 +6,15 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 .subtitle{margin:0 0 8px 0;color:var(--muted);font-size:14px}
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px; margin-top:16px;} /* Größerer Abstand nach oben für "Training starten"-Bereich */
+/* NEU: Kinder der Row flexibel machen, um Wrap zu vermeiden (schrumpfen proportional) */
+.top-actions > * {
+  flex-shrink: 1; /* Ermöglicht Schrumpfen bei Text-Änderungen, statt Wrap */
+}
 .small-label{font-size:12px;margin-right:2px}
-.btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer; flex-shrink: 1;} /* Global: Buttons schrumpfen leicht bei Bedarf */
 .btn.small{padding:6px 10px;font-size:12px}
 .btn.large{padding:10px 16px;font-size:14px;font-weight:600}
-.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px;} /* Zusätzlicher Abstand für den Start-Button (z.B. "Training starten") */
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex-shrink: 1; white-space: nowrap;} /* Training-Button: Schrumpft und verhindert Text-Umbruch bei "Stop" */
 .btn.ghost{background:transparent}
 
 /* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
@@ -30,12 +34,12 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   white-space: nowrap; /* Verhindert Umbruch des Texts */
 }
 
-/* NEU: Autoplay-Button ca. 20% breiter machen (min-width: 140px, mehr Padding horizontal) */
+/* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
 #btnAutoplay {
-  min-width: 140px; /* Ca. 20% breiter als Standard-Button (~120px Basis) */
-  padding: 8px 18px; /* Etwas mehr horizontaler Innenabstand für Balance und Breite */
-  flex: 1 1 auto; /* Streckt sich in Flex-Container (z.B. .top-actions), aber priorisiert Breite */
-  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎") */
+  min-width: 130px; /* Ca. 20% breiter als Standard (~110px Basis), aber als Minimum (dynamisch) */
+  padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
+  flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
+  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
   font-weight: 600; /* Leicht bolder für Prominenz */
 }
 
@@ -180,6 +184,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   /* Kleinerer Abstand für "Training starten" auf Mobile */
   .top-actions {
     margin-top: 12px; /* Reduziert, um Platz zu sparen */
+    gap: 6px; /* NEU: Kleinerer Gap auf Mobile, für mehr horizontale Flexibilität (vermeidet Wrap) */
   }
   
   .btn.primary {
@@ -193,11 +198,11 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     font-size: 13px; /* Kleinerer Text auf Mobile */
   }
   
-  /* NEU: Autoplay-Button auf Mobile etwas kompakter (aber immer noch breiter als Standard) */
+  /* NEU: Dynamisch breiterer Autoplay-Button auf Mobile (flexibel, passt sich an) */
   #btnAutoplay {
-    min-width: 120px; /* Ca. 20% breiter als Standard auf Mobile (~100px Basis) */
-    padding: 8px 16px; /* Etwas weniger Padding, um in enger Row zu passen */
-    flex: 1 1 auto; /* Bleibt flexibel */
+    min-width: 110px; /* Ca. 20% breiter als Standard auf Mobile (~90px Basis), aber dynamisch */
+    padding: 8px 14px; /* Weniger Padding für enge Screens */
+    flex: 0 1 auto; /* Bleibt flexibel – schrumpft bei Bedarf */
   }
   
   /* Responsive für Language/Swap-Row auf Mobile */
