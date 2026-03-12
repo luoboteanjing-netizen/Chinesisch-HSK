@@ -1,4 +1,4 @@
-/* r15.4 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
+/* r15.5 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
 let EXCEL_URL = './data/HSK_Lektionen.xlsx';
 const DATA_START_ROW=3;
 const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
@@ -190,6 +190,22 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const directionLabel = document.querySelector('#lblRichtung') || document.querySelector('.direction-label') || document.querySelector('.lbl:has(~ .mode-inline)');  // Fallback-Selektoren basierend auf CSS
   if (directionLabel) {
     directionLabel.style.display = 'none';  // Versteckt das Label (spart Höhe); oder .remove() zum Entfernen
+  }
+
+  // NEU: Positioniere Autoplay-Button direkt neben "Training starten" (nach #btnStart in .top-actions)
+  const trainingBtn = $('#btnStart');
+  const autoplayBtn = $('#btnAutoplay');
+  const topActions = $('.top-actions');  // Parent-Row
+  if (trainingBtn && autoplayBtn && topActions && topActions.contains(trainingBtn) && topActions.contains(autoplayBtn)) {
+    // Entferne Autoplay aus aktueller Position
+    autoplayBtn.parentNode.removeChild(autoplayBtn);
+    // Füge direkt nach Training-Button ein
+    topActions.insertBefore(autoplayBtn, trainingBtn.nextSibling);
+  }
+
+  // NEU: Füge .primary-Klasse zum Autoplay-Button hinzu (für blaue Farbe, wie Training-Button)
+  if (autoplayBtn) {
+    autoplayBtn.classList.add('primary');
   }
 
   const gapSec = (state.autoplay.gapMs/1000).toFixed(1); $('#gapRange').value = gapSec; $('#gapVal').textContent = `(${gapSec} s)`;

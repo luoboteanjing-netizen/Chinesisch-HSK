@@ -1,266 +1,265 @@
 /* r15.2.6 styles (Umschaltbtn größer, breiter,schriftgrößen angepasst, Abstände, Farbe) */
-let EXCEL_URL = './data/HSK_Lektionen.xlsx';
-const DATA_START_ROW=3;
-const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
-const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
+:root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
+.container{max-width:1100px;margin:24px auto;padding:0 12px}
+header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
+.subtitle{margin:0 0 8px 0;color:var(--muted);font-size:14px}
+.top-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px; margin-top:16px;} /* Etwas mehr Gap (10px) für bessere Gruppierung (Training + Autoplay) */
+/* NEU: Kinder der Row flexibel machen, um Wrap zu vermeiden (schrumpfen proportional) */
+.top-actions > * {
+  flex-shrink: 1; /* Ermöglicht Schrumpfen bei Text-Änderungen, statt Wrap */
+}
+/* Speziell: Enge Gruppierung für Training- und Autoplay-Buttons (kleinerer Gap dazwischen) */
+.top-actions #btnStart + #btnAutoplay {
+  margin-left: 8px; /* Kleinerer Abstand zwischen den beiden Primary-Buttons */
+}
+.small-label{font-size:12px;margin-right:2px}
+.btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:10px;cursor:pointer; flex-shrink: 1;} /* Global: Buttons schrumpfen leicht bei Bedarf */
+.btn.small{padding:6px 10px;font-size:12px}
+.btn.large{padding:10px 16px;font-size:14px;font-weight:600}
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex-shrink: 1; white-space: nowrap; transition: all 0.2s ease;} /* Training-Button: Schrumpft und verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
+/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
+#btnAutoplay.primary {
+  background: #7aa2f7 !important;
+  border-color: #7aa2f7 !important;
+  color: #081018 !important;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
+}
+.btn.ghost{background:transparent}
 
-const state={
-  mode:'de2zh', order:'random',
-  rateDe:0.95, pitchDe:1.0, rateZh:0.95, pitchZh:1.0,
-  lessons:new Map(), selectedLessons:new Set(), pool:[], idx:null, current:null,
-  voices:[], browserVoice:{ zh:null, de:null }, voicePanelTarget:'de',
-  autoplay:{ on:false, timers:[], gapMs:800 },
-  settings:{ mode:'de2zh', order:'random', rateDe:0.95, pitchDe:1.0, rateZh:0.95, pitchZh:1.0, lessons:[], browserVoiceZh:null, browserVoiceDe:null, autoplayGap:800 },
-  session:{ total:0, done:0, known:0, unsure:0, unknown:0, ttrSum:0, ttrCount:0 },
-  startedAt:null, revealedAt:null,
-  // progress.byLesson: { [lessonId]: { known:number, unknown:number } }
-  progress:{ version:'v1', cards:{}, byLesson:{} },
-  wakeLock:null,
-  trainingOn:false
-};
-
-const $=s=>document.querySelector(s);
-
-function saveSettings(){ try{ localStorage.setItem(LS_KEYS.settings, JSON.stringify(state.settings)); }catch(e){} }
-function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(LS_KEYS.settings)||'null'); if(s){ state.settings=Object.assign(state.settings,s); } }catch(e){} }
-function saveProgress(){ try{ localStorage.setItem(LS_KEYS.progress, JSON.stringify(state.progress)); }catch(e){} }
-function loadProgress(){ try{ const p=JSON.parse(localStorage.getItem(LS_KEYS.progress)||'null'); if(p && p.version==='v1'){ state.progress=p; } }catch(e){} }
-
-function isZhVoice(v){ const L=(v.lang||'').toLowerCase(); return L.startsWith('zh')||L.includes('cmn')||L.includes('hans')||L.includes('zh-cn'); }
-function isDeVoice(v){ const L=(v.lang||'').toLowerCase(); return L.startsWith('de'); }
-
-function updateVoiceList(){ const box=$('#dbgVoices'); if(!box) return; box.innerHTML=''; const list=(state.voices||[]).filter(v=> state.voicePanelTarget==='zh'? isZhVoice(v) : isDeVoice(v)); if(list.length===0){ box.innerHTML='<div class="meta">Keine passenden Stimmen gefunden.</div>'; return; }
-  list.forEach(v=>{ const row=document.createElement('div'); row.className='voice'; const name=document.createElement('div'); name.className='name'; name.textContent=v.name||'(name)'; const meta=document.createElement('div'); meta.className='meta'; meta.textContent=`${v.lang||''} ${v.default?'· default':''}`; const actions=document.createElement('div'); actions.style.marginLeft='auto'; actions.style.display='flex'; actions.style.gap='6px'; actions.style.flexWrap='wrap';
-    const pick=document.createElement('button'); pick.className='btn'; pick.textContent='Diese Stimme wählen'; pick.onclick=()=>{ if(state.voicePanelTarget==='zh'){ state.browserVoice.zh=v; state.settings.browserVoiceZh=v.name||v.voiceURI; } else { state.browserVoice.de=v; state.settings.browserVoiceDe=v.name||v.voiceURI; } saveSettings(); updateVoiceList(); };
-    const test=document.createElement('button'); test.className='btn ghost'; test.textContent='Probehören'; test.onclick=()=>{ const u=new SpeechSynthesisUtterance(state.voicePanelTarget==='zh'? '这是一个测试。' : 'Dies ist ein Test.'); u.lang=(state.voicePanelTarget==='zh')?'zh-CN':'de-DE'; u.voice=v; try{speechSynthesis.cancel();}catch(e){} speechSynthesis.speak(u); };
-    const act = (state.voicePanelTarget==='zh'? state.browserVoice.zh : state.browserVoice.de);
-    if(act && (act.name===v.name || act.voiceURI===v.voiceURI)) name.textContent+='  •  [Aktiv]';
-    actions.appendChild(pick); actions.appendChild(test);
-    row.appendChild(name); row.appendChild(meta); row.appendChild(actions); box.appendChild(row);
-  });
+/* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
+.btn.swap {
+  font-weight: 700; /* Bold für den Text */
+  padding: 12px 20px; /* Höheres Padding (vertikal mehr für Zentrierung und Präsenz) */
+  font-size: 14px; /* Geändert: Größere Schrift für den gesamten Text ("< Richtung >") */
+  border-radius: 12px; /* Etwas abgerundeter für modernen Look */
+  min-width: 100px; /* Minimale Breite, damit er sich ausdehnt */
+  min-height: 60px; /* Höher für bessere Sichtbarkeit und Berührbarkeit */
+  flex: 1 1 auto; /* Teilt Platz mit den Nachbarn */
+  display: flex; /* Flexbox für perfekte Zentrierung */
+  align-items: center; /* Vertikal zentriert */
+  justify-content: center; /* Horizontal zentriert */
+  text-align: center; /* Text zentriert (Fallback) */
+  line-height: 1.2; /* Etwas mehr Zeilenhöhe für den Text */
+  white-space: nowrap; /* Verhindert Umbruch des Texts */
 }
 
-function refreshVoices(){ state.voices = window.speechSynthesis?.getVoices?.() || []; if(state.settings.browserVoiceZh){ const vz=state.voices.find(x=>x.name===state.settings.browserVoiceZh||x.voiceURI===state.settings.browserVoiceZh); if(vz) state.browserVoice.zh=vz; } if(state.settings.browserVoiceDe){ const vd=state.voices.find(x=>x.name===state.settings.browserVoiceDe||x.voiceURI===state.settings.browserVoiceDe); if(vd) state.browserVoice.de=vd; } updateVoiceList(); }
+/* Dynamisch breiterer Autoplay-Button (ca. 20% breiter, aber flexibel – passt sich an Nachbarn an) */
+#btnAutoplay {
+  min-width: 130px; /* Ca. 20% breiter als Standard (~110px Basis), aber als Minimum (dynamisch) */
+  padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
+  flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
+  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
+  font-weight: 600; /* Leicht bolder für Prominenz (wird zu 700 bei .primary) */
+}
 
-let _voicesRetryT; function openVoicesPanelFor(target){ state.voicePanelTarget=target; refreshVoices(); if(!state.voices || state.voices.length===0){ clearTimeout(_voicesRetryT); let tries=0; const tick=()=>{ tries++; refreshVoices(); if(state.voices.length>0 || tries>=8) return; _voicesRetryT=setTimeout(tick,300); }; _voicesRetryT=setTimeout(tick,300); } $('#voicePanel').classList.remove('hidden'); }
-function closeVoices(){ $('#voicePanel').classList.add('hidden'); }
+.card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
+.lbl{display:block;margin-bottom:6px;color:var(--muted)}
 
-async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=name; if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos}); } }
-  populateLessonSelect(); }
+.hint{color:var(--muted);font-size:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane{border:1px solid var(--border);border-radius:10px;padding:12px}
+.select, .input{width:100%;background:#0f141b;border:1px solid #293241;color:var(--text);border-radius:8px;padding:10px;min-height:42px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.stack{display:flex;flex-direction:column;gap:8px}
+.prompt-box{border:1px dashed #303b49;border-radius:12px;padding:12px}
+.prompt{font-size:20px}
+.prompt.big{font-size:20px;font-weight:800}
+.prompt.sub{color:#c9d3df;margin-bottom:6px}
+.prompt.small{font-size:16px}
+.solution{margin-top:12px}
+.sol{position:relative;border:1px solid var(--border);border-radius:12px;padding:12px}
+.sol .sol-part{margin-bottom:10px}
+.sol .sol-text{font-size:20px;white-space:pre-wrap}
+.sol.masked .sol-text{filter:blur(10px); opacity:0.05; user-select:none}
+.card-controls{display:flex;gap:12px;justify-content:center;margin-top:10px}
+.card-controls.second{margin-top:6px}
+.stats-bar{margin-top:8px;color:#a7b5c5;font-size:13px;text-align:center}
 
-async function loadExcel(){ try{ const res=await fetch(EXCEL_URL,{cache:'no-store'}); const buf=await res.arrayBuffer(); await parseExcelBuffer(buf); }catch(e){ console.error('Excel konnte nicht geladen werden:',e); alert('Konnte Datei nicht laden.'); } }
+.debug{position:fixed;inset:5% 5% auto 5%;background:#0f141b;border:1px solid #2b3646;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:1000;display:flex;flex-direction:column}
+.debug.hidden{display:none}
+.debug-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2b3646;padding:8px 10px}
+.debug-head .title{font-weight:800}
+.debug-body{padding:10px;overflow:auto;max-height:70vh}
+.debug-section{margin-bottom:12px}
+.debug-section .h{font-weight:700;margin-bottom:6px;color:#cbd6e3}
+#dbgVoices .voice{display:flex;gap:10px;align-items:center;border:1px solid #2b3646;border-radius:8px;padding:6px;margin-bottom:6px}
+#dbgVoices .voice .meta{font-size:12px;color:#b6c2d0}
+#dbgVoices .voice .name{font-weight:700}
 
-function ensureBL(lessonKey){ const bl=state.progress.byLesson; bl[lessonKey]=bl[lessonKey]||{ known:0, unknown:0 }; return bl[lessonKey]; }
+.mode-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Mehr Gap für Balance mit höherem Button */
+.actions-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Gleiches für actions-inline */
+.mode-item{background:#0f141b;border:1px solid #293241;border-radius:8px;padding:6px 16px;font-weight:700; min-width:80px; flex:1 1 auto; display: flex; align-items: center; justify-content: center; text-align: center;} /* Zentrierung der Beschriftungen (z.B. "DE"/"ZH") – horizontal/vertikal perfekt */
+.btn.swap{font-weight:800;padding:6px 10px}
+.gap-row input[type=range]{width:100%}
 
-function populateLessonSelect(){ const sel=$('#lessonSelect'); sel.innerHTML=''; const keys=Array.from(state.lessons.keys()).sort(); for(const k of keys){ const total=state.lessons.get(k).length; const bl=state.progress.byLesson?.[k]||{known:0,unknown:0}; const known=bl.known||0, unknown=bl.unknown||0; const opt=document.createElement('option'); opt.value=k; opt.textContent=`${k} (${total}) · Richtig ${known} · Falsch ${unknown}`; if(state.settings.lessons?.includes(k)) opt.selected=true; sel.appendChild(opt); } }
+.two-col{display:flex; flex-wrap:wrap; gap:10px}
+.two-col > *{flex:1 1 calc(50% - 10px); max-width:calc(50% - 10px)}
+.voice-btn{width:100%}
+.voice-config{display:flex;flex-direction:column;gap:6px}
+.voice-range{width:100%}
 
-function resetSessionStats(){ state.session={ total:state.pool.length, done:0, known:0, unsure:0, unknown:0, ttrSum:0, ttrCount:0 }; renderSessionStats(); }
+.ratebar{display:flex;gap:8px;justify-content:center;align-items:stretch;flex-wrap:nowrap;margin:10px 0 6px}
+.ratebar .btn{flex:0 0 calc((100% - 16px)/3); max-width:calc((100% - 16px)/3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:16px 12px}
+@media(max-width:480px){ .ratebar .btn{padding:12px 10px; font-size:12px} }
 
-function gatherPoolFromSettings(){ state.selectedLessons.clear(); (state.settings.lessons||[]).forEach(id=> state.selectedLessons.add(id)); const out=[]; for(const k of state.selectedLessons){ const arr=state.lessons.get(k); if(arr) out.push(...arr); } state.pool=out; state.idx=null; resetSessionStats(); }
+@media(max-width:460px){ header h1{font-size:20px} .subtitle{font-size:12px} }
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
 
-function gatherPool(){ const out=[]; for(const k of state.selectedLessons){ const arr=state.lessons.get(k); if(arr) out.push(...arr); } state.pool=out; state.idx=null; resetSessionStats(); }
+/* NEUE REGELN: Anpassung der Schriftgröße für ZH Tempo (Rate) und ZH Tonhöhe (Pitch) */
+#rateZhRange, #pitchZhRange {
+  font-size: 16px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
+}
 
-function setCard(entry){ state.current=entry; $('#solBox').classList.add('masked'); state.startedAt=Date.now(); state.revealedAt=null; if(state.mode==='zh2de'){ $('#promptWord').innerHTML=(entry.word.zh||'—'); $('#promptWordSub').innerHTML=formatPinyinAndPos(entry.word.py, entry.pos); $('#promptSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); $('#solWord').textContent=entry.word.de||'—'; $('#solSent').textContent=entry.sent.de||'—'; } else { $('#promptWord').textContent=entry.word.de||'—'; $('#promptWordSub').textContent=entry.pos?entry.pos:''; $('#promptSent').textContent=entry.sent.de||'—'; $('#solWord').innerHTML=formatZh(entry.word.zh, entry.word.py); $('#solSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); } $('#btnNext').disabled=false; $('#btnReveal').disabled=false; $('#btnPlayQ').disabled=false; $('#btnPlayA').disabled=false; disableRating(); renderModeUI(); }
+/* NEUE REGELN: Abstände anpassen für ZH-Sektion (und DE, falls ähnlich) */
+.voice-config {
+  gap: 10px; /* Erhöhtes Gap: Mehr Abstand zwischen allen Elementen (inkl. Button oben und Sliders) */
+}
 
-function nextCard(){ if(!state.pool.length) return alert('Bitte Lektionen wählen und übernehmen.'); if(state.order==='seq'){ if(state.idx==null) state.idx=0; else state.idx=(state.idx+1)%state.pool.length; setCard(state.pool[state.idx]); } else { const e=state.pool[Math.floor(Math.random()*state.pool.length)]; setCard(e); } }
-function prevCard(){ if(state.order!=='seq' || !state.pool.length) return; if(state.idx==null) state.idx=0; else state.idx=(state.idx-1+state.pool.length)%state.pool.length; setCard(state.pool[state.idx]); }
+/* Speziell: Größerer Abstand direkt nach den Voice-Buttons (DE/ZH Stimme wählen) */
+.voice-btn + .voice-config,
+#btnVoiceDe + .voice-config,
+#btnVoiceZh + .voice-config {
+  margin-top: 8px; /* Zusätzlicher Abstand nach dem Button */
+}
 
-function scrollToTopHard(){ window.scrollTo(0,0); document.body.scrollTop=0; document.documentElement.scrollTop=0; setTimeout(()=>{ window.scrollTo(0,0); document.body.scrollTop=0; document.documentElement.scrollTop=0; }, 60); }
-function scrollToPageEnd(){ try{ window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }catch(e){ window.scrollTo(0, document.body.scrollHeight); } }
+.voice-config > *:first-child { /* Erstes Element in der Config (z.B. Label "ZH Tempo") */
+  margin-top: 12px; /* Mehr Abstand zum Button darüber – das macht den Unterschied */
+}
 
-function startTraining(){ if(!state.trainingOn){ const sel=$('#lessonSelect'); state.selectedLessons.clear(); const picked=[]; for(const o of sel.selectedOptions){ state.selectedLessons.add(o.value); picked.push(o.value); } state.settings.lessons=picked; saveSettings(); gatherPool(); if(!state.pool.length){ alert('Bitte zuerst Lektion(en) übernehmen.'); return; } state.idx = (state.order==='seq') ? 0 : null; if(state.order==='seq') setCard(state.pool[state.idx]); else setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); state.trainingOn=true; updateTrainingBtn(); scrollToPageEnd(); setTimeout(scrollToPageEnd, 60); } else { stopTraining(); } }
+/* Kleinerer Abstand der Labels zu den Sliders (ZH und DE) */
+.voice-config .lbl { /* Überschreibt den globalen .lbl-Margin */
+  margin-bottom: 2px; /* Stark reduziert: Labels sehr nah an den Sliders darunter */
+  text-align: left; /* Andere Labels (z.B. in Voice-Config) bleiben linksbündig */
+}
 
-function stopTraining(){ state.trainingOn=false; updateTrainingBtn(); $('#btnPrev').disabled=true; $('#btnReveal').disabled=true; $('#btnNext').disabled=true; $('#btnPlayQ').disabled=true; $('#btnPlayA').disabled=true; disableRating(); $('#solBox').classList.add('masked'); $('#promptWord').textContent='—'; $('#promptWordSub').innerHTML='&nbsp;'; $('#promptSent').textContent='—'; $('#solWord').textContent='—'; $('#solSent').textContent='—'; scrollToTopHard(); }
-function updateTrainingBtn(){ const b=$('#btnStart'); if(!b) return; b.textContent = state.trainingOn? 'Training stoppen ■' : 'Training starten ▶'; }
+#rateZhVal, #pitchZhVal { /* Werte-Anzeigen nah am Slider */
+  margin-bottom: 0; /* Kein Abstand mehr – direkt über dem Slider */
+}
 
-function doReveal(){ $('#solBox').classList.remove('masked'); state.revealedAt=Date.now(); const ttr=state.revealedAt-(state.startedAt||state.revealedAt); if(ttr>0){ state.session.ttrSum+=ttr; state.session.ttrCount+=1; } enableRating(); renderSessionStats(); }
+#rateZhRange, #pitchZhRange,
+#rateDeRange, #pitchDeRange { /* Sliders selbst: Etwas Padding oben, um nahtlos zu wirken */
+  margin-top: 0;
+  padding-top: 2px; /* Minimaler Puffer, falls nötig */
+}
 
-function enableRating(){ $('#btnRateKnown').disabled=false; $('#btnRateUnsure').disabled=false; $('#btnRateUnknown').disabled=false; }
-function disableRating(){ $('#btnRateKnown').disabled=true; $('#btnRateUnsure').disabled=true; $('#btnRateUnknown').disabled=true; }
-
-function rate(mark){ if(!state.current) return; state.session.done += 1; if(mark==='known') state.session.known += 1; else if(mark==='unsure') state.session.unsure += 1; else state.session.unknown += 1; renderSessionStats();
-  try{ const lessonKey = findLessonKeyOfCurrent(); if(lessonKey){ const rec=ensureBL(lessonKey); if(mark==='known') rec.known += 1; else if(mark==='unknown') rec.unknown += 1; // 'unsure' nicht zählen
-    saveProgress(); populateLessonSelect(); } }catch(e){}
-  disableRating(); nextCard(); }
-
-function findLessonKeyOfCurrent(){ for(const [k,arr] of state.lessons.entries()){ if(arr && arr.includes(state.current)) return k; } return null; }
-
-function formatZh(hz,py){ const h=(hz||'').trim(); const p=(py||'').trim(); return p? `${h}<br><span class="py">${p}</span>` : (h||'—'); }
-function formatPinyinAndPos(py,pos){ const a=(py||'').trim(); const b=(pos||'').trim(); if(a&&b) return `<span class="py">${a}</span><br><span class="prompt small" style="display:inline-block;margin-top:6px;">${b}</span>`; if(a) return `<span class="py">${a}</span>`; if(b) return `<span class="prompt small" style="display:inline-block;margin-top:6px;">${b}</span>`; return ''; }
-
-const START_DELAY_MS=150; const BETWEEN_DELAY_MS=800; let _ttsPrimed=false; function ttsPrime(cb){ if(_ttsPrimed){ cb(); return; } setTimeout(()=>{ _ttsPrimed=true; cb(); }, START_DELAY_MS); }
-function buildUtterance(text, langKey){ const lang=(langKey==='zh')?'zh-CN':'de-DE'; const u=new SpeechSynthesisUtterance(text||''); u.lang=lang; if(langKey==='zh'){ u.rate=state.rateZh; u.pitch=state.pitchZh; } else { u.rate=state.rateDe; u.pitch=state.pitchDe; } const chosen=(langKey==='zh')?state.browserVoice.zh:state.browserVoice.de; if(chosen) u.voice=chosen; else { const L=(langKey==='zh')?'zh':'de'; const cand=(state.voices||[]).filter(v=>(v.lang||'').toLowerCase().startsWith(L)); u.voice=cand.find(v=>v.default)||cand[0]||null; } return u; }
-
-/* --- Native Mandarin Voice Pack (optional cloud TTS with cache + fallback) --- */
-
-const VOICE_PACK = {
-  female1: "zh-CN-XiaoxiaoNeural",
-  female2: "zh-CN-XiaochenNeural",
-  male1: "zh-CN-YunxiNeural",
-  male2: "zh-CN-YunyangNeural"
-};
-
-// Set later if you use a proxy server
-const NATIVE_TTS_ENDPOINT = "";
-
-let nativeVoiceChoice = "female1";
-
-const nativeAudioCache = new Map();
-
-async function nativeMandarinSpeak(text){
-  if(!text) return;
-
-  if(!NATIVE_TTS_ENDPOINT){
-    const u = buildUtterance(text,'zh');
-    speechSynthesis.speak(u);
-    return;
+/* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
+@media (min-width: 1024px) {
+  :root {
+    --bg: #1a1a2e; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
   }
-
-  const cacheKey = nativeVoiceChoice + "|" + text;
-
-  if(nativeAudioCache.has(cacheKey)){
-    const audio = new Audio(nativeAudioCache.get(cacheKey));
-    audio.play();
-    return;
-  }
-
-  try{
-    const res = await fetch(NATIVE_TTS_ENDPOINT,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json"},
-      body: JSON.stringify({
-        text:text,
-        voice: VOICE_PACK[nativeVoiceChoice]
-      })
-    });
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    nativeAudioCache.set(cacheKey,url);
-
-    const audio = new Audio(url);
-    audio.play();
-
-  }catch(e){
-    const u = buildUtterance(text,'zh');
-    speechSynthesis.speak(u);
+  
+  html, body {
+    background: var(--bg); /* Wendet die neue Variable an */
   }
 }
 
-function ttsSpeak(text, langKey){ const u=buildUtterance(text, langKey); speechSynthesis.speak(u); return u; }
-function playSequence(firstText, firstLangKey, secondText, secondLangKey){ ttsPrime(()=>{ try{ speechSynthesis.cancel(); }catch(e){}; ttsSpeak(firstText, firstLangKey); setTimeout(()=>{ ttsSpeak(secondText, secondLangKey); }, BETWEEN_DELAY_MS); }); }
-function playQuestion(){ if(!state.current) return; if(state.mode==='de2zh'){ playSequence(state.current.word.de,'de', state.current.sent.de,'de'); } else { nativeMandarinSpeak(state.current.word.zh); setTimeout(()=>nativeMandarinSpeak(state.current.sent.zh),700); } }
-function playAnswer(){ if(!state.current) return; if(state.mode==='de2zh'){ nativeMandarinSpeak(state.current.word.zh); setTimeout(()=>nativeMandarinSpeak(state.current.sent.zh),700); } else { playSequence(state.current.word.de,'de', state.current.sent.de,'de'); } }
+/* KONSISTENZ-REGELN: Einheitliche Schriftgröße (14px) für Labels und Buttons in Voice- und Gap-Bereichen */
+.voice-btn { /* Buttons: "DE Stimme", "ZH Stimme" */
+  font-size: 14px; /* Einheitlich: Passt zu Labels */
+  font-weight: 500; /* Optional: Etwas fett für Buttons */
+}
 
-function setAutoplay(on){ state.autoplay.on=on; if(!on){ try{ speechSynthesis.cancel(); }catch(e){} state.autoplay.timers.forEach(id=>clearTimeout(id)); state.autoplay.timers=[]; releaseWakeLock(); } updateAutoplayBtn(); }
-function updateAutoplayBtn(){ const b=$('#btnAutoplay'); if(!b) return; b.textContent = state.autoplay.on? 'Autoplay ■ Stop' : 'Autoplay ▶︎'; }
-function speakPair(word, sent, langKey, done){ if(!state.autoplay.on) return; const u1 = buildUtterance(word, langKey); u1.onend = ()=>{ if(!state.autoplay.on) return; const t=setTimeout(()=>{ if(!state.autoplay.on) return; const u2=buildUtterance(sent, langKey); u2.onend=()=>{ if(!state.autoplay.on) return; done && done(); }; speechSynthesis.speak(u2); }, BETWEEN_DELAY_MS); state.autoplay.timers.push(t); }; speechSynthesis.speak(u1); }
-function ensurePoolForAutoplay(){ if(state.pool.length>0) return true; if(!state.settings.lessons || state.settings.lessons.length===0){ const sel=$('#lessonSelect'); const picked=[]; for(const o of sel?.selectedOptions||[]){ picked.push(o.value); } if(picked.length>0){ state.settings.lessons=picked; saveSettings(); } } gatherPoolFromSettings(); if(!state.pool.length){ alert('Bitte Lektion(en) wählen oder übernehmen, bevor Autoplay startet.'); return false; } if(state.order==='seq'){ state.idx=0; setCard(state.pool[state.idx]); } else { setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); } return true; }
-function autoplayStep(){ if(!state.autoplay.on) return; if(!ensurePoolForAutoplay()) { setAutoplay(false); return; } $('#solBox').classList.add('masked'); disableRating(); const qLang = (state.mode==='de2zh')? 'de':'zh'; const aLang = (state.mode==='de2zh')? 'zh':'de'; ttsPrime(()=>{ try{ speechSynthesis.cancel(); }catch(e){}; speakPair(state.current.word[qLang], state.current.sent[qLang], qLang, ()=>{ if(!state.autoplay.on) return; $('#solBox').classList.remove('masked'); speakPair(state.current.word[aLang], state.current.sent[aLang], aLang, ()=>{ if(!state.autoplay.on) return; const t=setTimeout(()=>{ if(!state.autoplay.on) return; if(state.order==='seq'){ if(state.idx==null) state.idx=0; else state.idx=(state.idx+1)%state.pool.length; setCard(state.pool[state.idx]); } else { setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); } autoplayStep(); }, state.autoplay.gapMs); state.autoplay.timers.push(t); }); }); }); }
-function toggleAutoplay(){ if(!state.autoplay.on){ if(!ensurePoolForAutoplay()) return; setAutoplay(true); requestWakeLock(); scrollToPageEnd(); setTimeout(scrollToPageEnd, 60); autoplayStep(); } else { setAutoplay(false); } }
-function stopAutoplayOnUserAction(){ if(state.autoplay.on) setAutoplay(false); }
+.voice-config .lbl { /* Labels: "ZH Tempo", "ZH Tonhöhe", "DE Tempo" etc. */
+  font-size: 14px; /* Einheitlich */
+  color: var(--muted); /* Hellgrau, wie gewünscht */
+}
 
-// Wake Lock API
-async function requestWakeLock(){ try{ if('wakeLock' in navigator && !state.wakeLock){ state.wakeLock = await navigator.wakeLock.request('screen'); state.wakeLock.addEventListener?.('release', ()=>{ state.wakeLock=null; }); document.addEventListener('visibilitychange', onVisibilityChange, { passive:true }); } }catch(e){} }
-function onVisibilityChange(){ if(document.visibilityState==='visible' && state.autoplay.on && !state.wakeLock){ requestWakeLock(); } }
-function releaseWakeLock(){ try{ if(state.wakeLock){ state.wakeLock.release?.(); } }catch(e){} finally{ state.wakeLock=null; document.removeEventListener('visibilitychange', onVisibilityChange); } }
+.gap-row .lbl { /* Label: "Pausenzeit zwischen Karten" */
+  font-size: 14px; /* Einheitlich */
+  color: var(--muted);
+}
 
-function renderSessionStats(){ const s=state.session; const avg=s.ttrCount? (s.ttrSum/s.ttrCount/1000).toFixed(1) : '—'; const acc=s.done? Math.round(100*s.known/s.done)+'%' : '—'; $('#sessionStats').textContent=`Karten: ${s.done}/${s.total} · Korrekt: ${acc} · Ø Aufdeck‑Zeit: ${avg}s`; }
-function renderModeUI(){ const left=$('#modeLeft'), right=$('#modeRight'); if(state.mode==='de2zh'){ left.textContent='🇩🇪 DE'; right.textContent='🇨🇳 ZH'; } else { left.textContent='🇨🇳 ZH'; right.textContent='🇩🇪 DE'; } $('#btnOrderToggle').textContent = 'Reihenfolge: ' + (state.order==='seq' ? 'Sequenziell' : 'Zufällig'); updateTrainingBtn(); }
+/* Anzeigewerte auf 12px (kleiner als Labels/Buttons für Dezenz) */
+#rateZhVal, #pitchZhVal,
+#rateDeVal, #pitchDeVal { /* Anzeigewerte: "(0.95)", "(1.0)" etc. für DE/ZH */
+  font-size: 12px; /* Kleiner für bessere Hierarchie */
+  font-weight: 500;
+}
 
-window.addEventListener('DOMContentLoaded', ()=>{
-  loadSettings(); loadProgress();
-  state.mode = state.settings.mode || 'de2zh';
-  state.order = state.settings.order || 'random';
-  state.autoplay.gapMs = typeof state.settings.autoplayGap==='number' ? state.settings.autoplayGap : 800;
-  state.rateDe = typeof state.settings.rateDe==='number'? state.settings.rateDe : 0.95;
-  state.pitchDe = typeof state.settings.pitchDe==='number'? state.settings.pitchDe : 1.0;
-  state.rateZh = typeof state.settings.rateZh==='number'? state.settings.rateZh : 0.95;
-  state.pitchZh = typeof state.settings.pitchZh==='number'? state.settings.pitchZh : 1.0;
-  renderModeUI(); updateAutoplayBtn();
+#gapVal { /* Anzeigewert: "(0.8 s)" für Pausenzeit */
+  font-size: 12px; /* Gleich wie andere Anzeigewerte */
+  font-weight: 500;
+}
 
-  // NEU: Setze den Text des Swap-Buttons auf "< Richtung >" (ersetzt Icon und integriert "Richtung" – Platz sparen, höher machen via CSS)
-  const swapBtn = $('#btnSwapMode');
-  if (swapBtn) {
-    swapBtn.textContent = '< Richtung >';  // Zeigt die < > als Literal-Text (keine HTML-Entities nötig mit textContent)
+/* Optional: Falls die gesamte Voice-Config-Sektion (DE/ZH) einheitlich sein soll */
+.voice-config .two-col > *,
+#voiceZhConfig > *,
+#voiceDeConfig > * { /* Alle Kinder in Voice-Panels – Labels bleiben 14px, Werte 12px */
+  font-size: 14px; /* Globale Einheitlichkeit für Nicht-Werte-Elemente */
+}
+
+/* Responsive Anpassung: Auf Mobile etwas kleiner für alle genannten Elemente */
+@media (max-width: 480px) {
+  /* Kleinerer Abstand für "Training starten" auf Mobile */
+  .top-actions {
+    margin-top: 12px; /* Reduziert, um Platz zu sparen */
+    gap: 6px; /* Kleinerer Gap auf Mobile, für mehr horizontale Flexibilität (vermeidet Wrap) */
   }
-
-  // Optional: Verstecke oder entferne das separate "Richtung"-Label (angenommen ID="lblRichtung" oder Klasse ".direction-label" – passe bei Bedarf an)
-  const directionLabel = document.querySelector('#lblRichtung') || document.querySelector('.direction-label') || document.querySelector('.lbl:has(~ .mode-inline)');  // Fallback-Selektoren basierend auf CSS
-  if (directionLabel) {
-    directionLabel.style.display = 'none';  // Versteckt das Label (spart Höhe); oder .remove() zum Entfernen
+  
+  /* NEU: Auf Mobile: Autoplay direkt unter/nah am Training-Button (via Order, falls nötig) */
+  .top-actions #btnStart + #btnAutoplay {
+    margin-left: 4px; /* Noch enger auf Mobile */
   }
-
-  // NEU: Positioniere Autoplay-Button direkt neben "Training starten" (nach #btnStart in .top-actions)
-  const trainingBtn = $('#btnStart');
-  const autoplayBtn = $('#btnAutoplay');
-  const topActions = $('.top-actions');  // Parent-Row
-  if (trainingBtn && autoplayBtn && topActions && topActions.contains(trainingBtn) && topActions.contains(autoplayBtn)) {
-    // Entferne Autoplay aus aktueller Position
-    autoplayBtn.parentNode.removeChild(autoplayBtn);
-    // Füge direkt nach Training-Button ein
-    topActions.insertBefore(autoplayBtn, trainingBtn.nextSibling);
+  
+  .btn.primary {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
   }
-
-  // NEU: Füge .primary-Klasse zum Autoplay-Button hinzu (für blaue Farbe, wie Training-Button)
-  if (autoplayBtn) {
-    autoplayBtn.classList.add('primary');
+  
+  /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */
+  .btn.swap {
+    padding: 10px 16px; /* Etwas kompakter Padding */
+    min-height: 50px; /* Reduziert für Mobile */
+    font-size: 13px; /* Kleinerer Text auf Mobile */
   }
-
-  const gapSec = (state.autoplay.gapMs/1000).toFixed(1); $('#gapRange').value = gapSec; $('#gapVal').textContent = `(${gapSec} s)`;
-  $('#rateDeRange').value=String(state.rateDe); $('#rateDeVal').textContent=`(${state.rateDe.toFixed(2)})`;
-  $('#pitchDeRange').value=String(state.pitchDe); $('#pitchDeVal').textContent=`(${state.pitchDe.toFixed(2)})`;
-  $('#rateZhRange').value=String(state.rateZh); $('#rateZhVal').textContent=`(${state.rateZh.toFixed(2)})`;
-  $('#pitchZhRange').value=String(state.pitchZh); $('#pitchZhVal').textContent=`(${state.pitchZh.toFixed(2)})`;
-
-  loadExcel();
-
-  // Voice panels
-  $('#btnVoiceDe').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('de'); });
-  $('#btnVoiceZh').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('zh'); });
-  $('#btnCloseVoices').addEventListener('click', closeVoices);
-
-  // Order / Autoplay
-  $('#btnOrderToggle').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); state.order = (state.order==='random')? 'seq':'random'; state.settings.order=state.order; saveSettings(); renderModeUI(); });
-  $('#btnAutoplay').addEventListener('click', ()=>{ toggleAutoplay(); });
-
-  // Gap slider
-  $('#gapRange').addEventListener('input', e=>{ const s=parseFloat(e.target.value)||0.8; state.autoplay.gapMs=Math.round(s*1000); state.settings.autoplayGap=state.autoplay.gapMs; $('#gapVal').textContent = `(${s.toFixed(1)} s)`; saveSettings(); });
-
-  // Rate/Pitch per language
-  $('#rateDeRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.rateDe=parseFloat(e.target.value); state.settings.rateDe=state.rateDe; $('#rateDeVal').textContent=`(${state.rateDe.toFixed(2)})`; saveSettings(); });
-  $('#pitchDeRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.pitchDe=parseFloat(e.target.value); state.settings.pitchDe=state.pitchDe; $('#pitchDeVal').textContent=`(${state.pitchDe.toFixed(2)})`; saveSettings(); });
-  $('#rateZhRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.rateZh=parseFloat(e.target.value); state.settings.rateZh=state.rateZh; $('#rateZhVal').textContent=`(${state.rateZh.toFixed(2)})`; saveSettings(); });
-  $('#pitchZhRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.pitchZh=parseFloat(e.target.value); state.settings.pitchZh=state.pitchZh; $('#pitchZhVal').textContent=`(${state.pitchZh.toFixed(2)})`; saveSettings(); });
-
-  // Mode swap
-  $('#btnSwapMode').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); state.mode = (state.mode==='de2zh')? 'zh2de':'de2zh'; state.settings.mode=state.mode; saveSettings(); renderModeUI(); if(state.current) setCard(state.current); });
-
-  // Flow: Start/Stop button
-  $('#btnStart').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); startTraining(); });
-  $('#btnNext').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); nextCard(); });
-  $('#btnPrev').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); prevCard(); });
-  $('#btnReveal').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); doReveal(); });
-  $('#btnPlayQ').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); playQuestion(); });
-  $('#btnPlayA').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); playAnswer(); });
-
-  // Rating
-  $('#btnRateKnown').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('known'); });
-  $('#btnRateUnsure').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('unsure'); });
-  $('#btnRateUnknown').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('unknown'); });
-
-  // NEW: Lessons controls
-  $('#btnUseLessons').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); const sel=$('#lessonSelect'); const picked=[]; for(const o of sel.selectedOptions){ picked.push(o.value); } state.settings.lessons=picked; saveSettings(); gatherPoolFromSettings(); });
-  $('#btnClearLessons').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); // Clear pool & selection
-    state.selectedLessons.clear(); state.settings.lessons=[]; saveSettings(); state.pool=[]; state.idx=null; resetSessionStats();
-    // clear UI selection in list
-    const sel=$('#lessonSelect'); for(const o of sel.options){ o.selected=false; }
-    // disable training state (if active) and reset view
-    if(state.trainingOn) stopTraining();
-  });
-
-  // Progress export/import
-  $('#btnExport').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state.progress,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='progress.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); });
-  $('#fileImport').addEventListener('change', e=>{ stopAutoplayOnUserAction(); const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const p=JSON.parse(r.result); if(p && p.version==='v1'){ state.progress=p; saveProgress(); populateLessonSelect(); alert('Fortschritt importiert.'); } else alert('Ungültiges Format.'); }catch(err){ alert('Import fehlgeschlagen: '+err.message); } }; r.readAsText(f); e.target.value=''; });
-});
+  
+  /* NEU: Dynamisch breiterer Autoplay-Button auf Mobile (flexibel, passt sich an) */
+  #btnAutoplay {
+    min-width: 110px; /* Ca. 20% breiter als Standard auf Mobile (~90px Basis), aber dynamisch */
+    padding: 8px 14px; /* Weniger Padding für enge Screens */
+    flex: 0 1 auto; /* Bleibt flexibel – schrumpft bei Bedarf */
+  }
+  
+  /* Responsive für Language/Swap-Row auf Mobile */
+  .mode-inline,
+  .actions-inline {
+    gap: 10px; /* Kleinerer Gap auf Mobile */
+    justify-content: center; /* Center für Ausrichtung */
+  }
+  
+  .mode-item {
+    padding: 6px 12px; /* Etwas kompakter, aber immer noch breiter */
+    min-width: 70px; /* Reduziert, um in enger Row zu passen */
+    display: flex; /* Bleibt flex für Zentrierung */
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* Zentrierung bleibt auf Mobile */
+  }
+  
+  .voice-btn,
+  .voice-config .lbl,
+  .gap-row .lbl {
+    font-size: 13px; /* Labels/Buttons etwas kleiner auf Mobile */
+  }
+  
+  /* Anzeigewerte auf Mobile: 11px */
+  #rateZhVal, #pitchZhVal, #rateDeVal, #pitchDeVal,
+  #gapVal {
+    font-size: 11px; /* Passt zur Skalierung */
+  }
+  
+  .voice-config {
+    gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+  }
+  
+  .voice-config > *:first-child {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+  }
+  
+  .voice-config .lbl {
+    margin-bottom: 3px; /* Etwas mehr Abstand auf kleinen Screens */
+  }
+}
