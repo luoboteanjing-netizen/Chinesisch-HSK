@@ -1,5 +1,5 @@
 /* r15.3 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
-let EXCEL_URL = './data/Long-Chinesisch_Lektionen.xlsx';
+let EXCEL_URL = './data/HSK_Lektionen.xlsx';
 const DATA_START_ROW=3;
 const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
 const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
