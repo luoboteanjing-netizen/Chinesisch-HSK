@@ -242,7 +242,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */
   .btn.swap {
     padding: 10px 16px; /* Etwas kompakter Padding */
-    min-height: 50px; /* Reduziert für Mobile */
+    min-height: 40px; /* Reduziert für Mobile */
     font-size: 13px; /* Kleinerer Text auf Mobile */
   }
   
@@ -256,7 +256,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   /* NEU: Sprache-Items auf Mobile: Kompakter (passt zu Swap-Reduktion) */
   .mode-item {
     padding: 10px 12px; /* Reduziertes Padding (10px vertikal), min-height:50px */
-    min-height: 50px; /* Gleiche Höhe wie Swap auf Mobile (50px) */
+    min-height: 40px; /* Gleiche Höhe wie Swap auf Mobile (50px) */
     min-width: 70px; /* Reduziert, um in enger Row zu passen */
     font-size: 13px; /* Etwas kleinere Schrift für Balance */
     display: flex; /* Bleibt flex für Zentrierung */
