@@ -1,4 +1,4 @@
-/* r15 styles (same as r14) */
+/* r15.2 styles (schriftgrößen angepasst) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -63,3 +63,31 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 
 @media(max-width:460px){ header h1{font-size:20px} .subtitle{font-size:12px} }
 @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+/* NEUE REGELN: Anpassung der Schriftgröße für ZH Tempo (Rate) und ZH Tonhöhe (Pitch) */
+#rateZhRange, #pitchZhRange {
+  font-size: 16px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
+}
+
+#rateZhVal, #pitchZhVal {
+  font-size: 14px; /* Schriftgröße für die angezeigten Werte (z.B. "(0.95)") */
+  font-weight: 500; /* Optional: Etwas fett für bessere Lesbarkeit */
+}
+
+.voice-config .lbl { /* Für Labels wie "ZH Tempo" oder "ZH Tonhöhe" in der Voice-Config */
+  font-size: 14px; /* Erhöht von default (z.B. 12px in .small-label) */
+  color: var(--text); /* Bleibt hell, für Kontrast */
+}
+
+/* Optional: Falls die gesamte Voice-Config-Sektion größer werden soll */
+#voiceZhConfig .two-col > * { /* Angenommen, es gibt eine ID oder Klasse für ZH-Config */
+  font-size: 14px;
+}
+
+/* Responsive Anpassung für kleine Bildschirme (optional, um es nicht zu klein zu machen) */
+@media (max-width: 480px) {
+  #rateZhVal, #pitchZhVal,
+  .voice-config .lbl {
+    font-size: 13px; /* Etwas kleiner auf Mobile, aber lesbar */
+  }
+}
