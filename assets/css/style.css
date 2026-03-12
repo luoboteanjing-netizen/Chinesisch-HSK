@@ -66,7 +66,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   font-size: 14px; /* Geändert: Größere Schrift für den gesamten Text ("< Richtung >") */
   border-radius: 12px; /* Etwas abgerundeter für modernen Look */
   min-width: 100px; /* Minimale Breite, damit er sich ausdehnt */
-  min-height: 60px; /* Höher für bessere Sichtbarkeit und Berührbarkeit */
+  min-height: 40px; /* Höher für bessere Sichtbarkeit und Berührbarkeit */
   flex: 1 1 auto; /* Teilt Platz mit den Nachbarn */
   display: flex; /* Flexbox für perfekte Zentrierung */
   align-items: center; /* Vertikal zentriert */
@@ -241,7 +241,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */
   .btn.swap {
     padding: 10px 16px; /* Etwas kompakter Padding */
-    min-height: 50px; /* Reduziert für Mobile */
+    min-height: 40px; /* Reduziert für Mobile */
     font-size: 13px; /* Kleinerer Text auf Mobile */
   }
   
@@ -255,7 +255,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   /* Responsive für Language/Swap-Row auf Mobile */
   .mode-inline,
   .actions-inline {
-    gap: 10px; /* Kleinerer Gap auf Mobile */
+    gap: 5px; /* Kleinerer Gap auf Mobile */
     justify-content: center; /* Center für Ausrichtung */
   }
   
