@@ -1,4 +1,4 @@
-/* r15.2.1 styles (schriftgrößen angepasst, Abstände, Farbe) */
+/* r15.2.2 styles (schriftgrößen angepasst, Abstände, Farbe) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -79,46 +79,58 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   color: var(--muted); /* Zurück auf vorherige Farbe: Hellgrau, wie im Original-CSS */
 }
 
+/* SPEZIFISCHE REGEL: Schriftgröße für "Pausenzeit..." (Gap-Label) – genauso groß wie vorher */
+.gap-row .lbl,
+#gapRange ~ label,
+#gapVal + label {
+  font-size: 16px; /* Default-Größe wie .small-label oder .hint – unverändert */
+  color: var(--muted); /* Farbe bleibt hellgrau */
+}
+
+#gapVal { /* Der Wert-Anzeiger "(0.8 s)" bleibt klein */
+  font-size: 14px;
+}
+
 /* Optional: Falls die gesamte Voice-Config-Sektion größer werden soll */
 #voiceZhConfig .two-col > * { /* Angenommen, es gibt eine ID oder Klasse für ZH-Config */
   font-size: 14px;
 }
 
-/* NEUE REGELN: Abstände anpassen für ZH-Sektion */
+/* NEUE REGELN: Abstände anpassen für ZH-Sektion (und DE, falls ähnlich) */
 .voice-config {
-  gap: 8px; /* Erhöhtes Gap: Mehr Abstand zwischen allen Elementen (inkl. zum Button oben) */
+  gap: 10px; /* Erhöhtes Gap: Mehr Abstand zwischen allen Elementen (inkl. Button oben und Sliders) */
 }
 
-.voice-config .lbl { /* Speziell für ZH-Labels: Kleinerer Abstand zum Slider darunter */
-  margin-bottom: 4px; /* Reduziert von 6px (default) – Labels näher an Sliders */
+/* Speziell: Größerer Abstand direkt nach den Voice-Buttons (DE/ZH Stimme wählen) */
+.voice-btn + .voice-config,
+#btnVoiceDe + .voice-config,
+#btnVoiceZh + .voice-config {
+  margin-top: 8px; /* Zusätzlicher Abstand nach dem Button */
 }
 
-#rateZhVal, #pitchZhVal {
-  margin-bottom: 2px; /* Optional: Noch engerer Abstand der Werte zu den Sliders */
+.voice-config > *:first-child { /* Erstes Element in der Config (z.B. Label "ZH Tempo") */
+  margin-top: 12px; /* Mehr Abstand zum Button darüber – das macht den Unterschied */
 }
 
-#voiceZhConfig > *:first-child, /* Erstes Element in ZH-Config (z.B. erster Slider) */
-#rateZhRange + *, /* Elemente direkt nach Rate-Slider */
-#pitchZhRange + * {
-  margin-top: 10px; /* Mehr Abstand zum oberen Button (falls nötig, gezielt) */
+/* Kleinerer Abstand der Labels zu den Sliders (ZH und DE) */
+.voice-config .lbl { /* Überschreibt den globalen .lbl-Margin */
+  margin-bottom: 2px; /* Stark reduziert: Labels sehr nah an den Sliders darunter */
 }
 
-/* SPEZIFISCHE REGEL: Schriftgröße für "Pausenzeit..." (Gap-Label) – genauso groß wie vorher */
-.gap-row .lbl,
-#gapRange ~ label, /* Falls das Label nach dem Slider kommt */
-#gapVal + label { /* Oder wenn es neben/vorher ist */
-  font-size: 14px; /* Default-Größe wie .small-label oder .hint – unverändert */
-  color: var(--muted); /* Farbe bleibt hellgrau */
+#rateZhVal, #pitchZhVal { /* Werte-Anzeigen nah am Slider */
+  margin-bottom: 0; /* Kein Abstand mehr – direkt über dem Slider */
 }
 
-#gapVal { /* Der Wert-Anzeiger "(0.8 s)" bleibt klein */
-  font-size: 12px;
+#rateZhRange, #pitchZhRange,
+#rateDeRange, #pitchDeRange { /* Sliders selbst: Etwas Padding oben, um nahtlos zu wirken */
+  margin-top: 0;
+  padding-top: 2px; /* Minimaler Puffer, falls nötig */
 }
 
 /* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
 @media (min-width: 1024px) {
   :root {
-    --bg: #2d3748; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
+    --bg: #4a5568; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
   }
   
   html, body {
@@ -135,6 +147,15 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   
   .voice-config {
     gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+  }
+  
+  /* Abstände auf Mobile: Etwas angepasst, um Engpässe zu vermeiden */
+  .voice-config > *:first-child {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+  }
+  
+  .voice-config .lbl {
+    margin-bottom: 3px; /* Etwas mehr Abstand auf kleinen Screens */
   }
   
   /* Gap-Label auf Mobile: Bleibt bei Default-Größe */
