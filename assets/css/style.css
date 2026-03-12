@@ -1,4 +1,4 @@
-/* r15.2 styles (schriftgrößen angepasst) */
+/* r15.2.1 styles (schriftgrößen angepasst, Abstände, Farbe) */
 :root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
@@ -76,7 +76,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
 
 .voice-config .lbl { /* Für Labels wie "ZH Tempo" oder "ZH Tonhöhe" in der Voice-Config */
   font-size: 14px; /* Erhöht von default (z.B. 12px in .small-label) */
-  color: var(--text); /* Bleibt hell, für Kontrast */
+  color: var(--muted); /* Zurück auf vorherige Farbe: Hellgrau, wie im Original-CSS */
 }
 
 /* Optional: Falls die gesamte Voice-Config-Sektion größer werden soll */
@@ -84,10 +84,62 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
   font-size: 14px;
 }
 
+/* NEUE REGELN: Abstände anpassen für ZH-Sektion */
+.voice-config {
+  gap: 8px; /* Erhöhtes Gap: Mehr Abstand zwischen allen Elementen (inkl. zum Button oben) */
+}
+
+.voice-config .lbl { /* Speziell für ZH-Labels: Kleinerer Abstand zum Slider darunter */
+  margin-bottom: 4px; /* Reduziert von 6px (default) – Labels näher an Sliders */
+}
+
+#rateZhVal, #pitchZhVal {
+  margin-bottom: 2px; /* Optional: Noch engerer Abstand der Werte zu den Sliders */
+}
+
+#voiceZhConfig > *:first-child, /* Erstes Element in ZH-Config (z.B. erster Slider) */
+#rateZhRange + *, /* Elemente direkt nach Rate-Slider */
+#pitchZhRange + * {
+  margin-top: 10px; /* Mehr Abstand zum oberen Button (falls nötig, gezielt) */
+}
+
+/* SPEZIFISCHE REGEL: Schriftgröße für "Pausenzeit..." (Gap-Label) – genauso groß wie vorher */
+.gap-row .lbl,
+#gapRange ~ label, /* Falls das Label nach dem Slider kommt */
+#gapVal + label { /* Oder wenn es neben/vorher ist */
+  font-size: 12px; /* Default-Größe wie .small-label oder .hint – unverändert */
+  color: var(--muted); /* Farbe bleibt hellgrau */
+}
+
+#gapVal { /* Der Wert-Anzeiger "(0.8 s)" bleibt klein */
+  font-size: 12px;
+}
+
+/* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
+@media (min-width: 1024px) {
+  :root {
+    --bg: #1a1a2e; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
+  }
+  
+  html, body {
+    background: var(--bg); /* Wendet die neue Variable an */
+  }
+}
+
 /* Responsive Anpassung für kleine Bildschirme (optional, um es nicht zu klein zu machen) */
 @media (max-width: 480px) {
   #rateZhVal, #pitchZhVal,
   .voice-config .lbl {
     font-size: 13px; /* Etwas kleiner auf Mobile, aber lesbar */
+  }
+  
+  .voice-config {
+    gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+  }
+  
+  /* Gap-Label auf Mobile: Bleibt bei Default-Größe */
+  .gap-row .lbl,
+  #gapRange ~ label {
+    font-size: 11px; /* Optional: Etwas kleiner auf Mobile, falls es zu eng wird */
   }
 }
