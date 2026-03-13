@@ -1,10 +1,7 @@
 /* r15.5 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
 let EXCEL_URL = './data/HSK_Lektionen.xlsx';
 const DATA_START_ROW=3;
-const COL_WORD={de:1,py:2,zh:6}; 
-const COL_SENT={de:5,py:4,zh:7}; 
-const COL_POS=3;
-const COL_ID=8;  // Spalte 8 für Vokabel-ID (z.B. "HSK 3-1-5"); Fallback zu Reihen-Nr.
+const COL_WORD={de:1,py:2,zh:6}; const COL_SENT={de:5,py:4,zh:7}; const COL_POS=3;
 const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
 
 const state={
@@ -48,14 +45,7 @@ function refreshVoices(){ state.voices = window.speechSynthesis?.getVoices?.() |
 let _voicesRetryT; function openVoicesPanelFor(target){ state.voicePanelTarget=target; refreshVoices(); if(!state.voices || state.voices.length===0){ clearTimeout(_voicesRetryT); let tries=0; const tick=()=>{ tries++; refreshVoices(); if(state.voices.length>0 || tries>=8) return; _voicesRetryT=setTimeout(tick,300); }; _voicesRetryT=setTimeout(tick,300); } $('#voicePanel').classList.remove('hidden'); }
 function closeVoices(){ $('#voicePanel').classList.add('hidden'); }
 
-async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=name; if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); 
-    // Feste ID pro Karte – aus Spalte 8 (z.B. "HSK 3-1-5") oder Fallback zu Reihen-Nr.
-    let id = String(row[COL_ID-1] || '').trim(); // Direkt aus Spalte 8 (beliebiger String)
-    if (!id) { // Fallback: Interne Nr. pro Lektion (r - r0 + 1)
-      id = `Nr. ${r - r0 + 1}`;
-    }
-    if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos, id}); // id hinzugefügt
-  } }
+async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=name; if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos}); } }
   populateLessonSelect(); }
 
 async function loadExcel(){ try{ const res=await fetch(EXCEL_URL,{cache:'no-store'}); const buf=await res.arrayBuffer(); await parseExcelBuffer(buf); }catch(e){ console.error('Excel konnte nicht geladen werden:',e); alert('Konnte Datei nicht laden.'); } }
@@ -70,42 +60,7 @@ function gatherPoolFromSettings(){ state.selectedLessons.clear(); (state.setting
 
 function gatherPool(){ const out=[]; for(const k of state.selectedLessons){ const arr=state.lessons.get(k); if(arr) out.push(...arr); } state.pool=out; state.idx=null; resetSessionStats(); }
 
-// Angepasste Funktion: Nur "Karte: [ID aus Spalte 8]" – kein Blattname mehr
-function updateCardInfo() {
-  const lbl = $('#lblKarte'); // ID="lblKarte"; passe an, falls anders
-  if (!lbl) {
-    console.warn('Label #lblKarte nicht gefunden – überprüfe HTML.');
-    return;
-  }
-
-  if (!state.current || state.pool.length === 0) {
-    lbl.innerHTML = 'Karte:'; // Fallback (ohne ID)
-    lbl.classList.add('card-info');
-    return;
-  }
-
-  const cardId = state.current.id || '—'; // Feste ID (z.B. "HSK 3-1-5" als String)
-
-  // Optional: Globale Pool-Position hinzufügen (z.B. "(1/20)" für Session-Übersicht)
-  // Setze globalInfo = ''; zum Weglassen (vereinfacht zu rein "Karte: HSK 3-1-5")
-  let globalInfo = '';
-  if (state.pool.length > 0) {
-    let globalNum;
-    if (state.order === 'seq' && state.idx !== null) {
-      globalNum = state.idx + 1; // Seq: Feste globale Nr.
-    } else {
-      globalNum = state.session.done + 1; // Random: Aktueller Session-Counter
-    }
-    globalInfo = ` <span class="emphasis">(${globalNum}/${state.pool.length})</span>`; // Optional: Globaler Kontext
-  }
-
-  const fullText = `Karte: <span class="emphasis">${cardId}</span>${globalInfo}`;
-  lbl.innerHTML = fullText; // HTML für Emphasis (ID bold)
-  lbl.classList.add('card-info');
-  console.log('Card-Info updated:', fullText, '(ID:', cardId, ', Global:', globalInfo, ')'); // Debug: Zeigt ID und optional Global
-}
-
-function setCard(entry){ state.current=entry; $('#solBox').classList.add('masked'); state.startedAt=Date.now(); state.revealedAt=null; if(state.mode==='zh2de'){ $('#promptWord').innerHTML=(entry.word.zh||'—'); $('#promptWordSub').innerHTML=formatPinyinAndPos(entry.word.py, entry.pos); $('#promptSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); $('#solWord').textContent=entry.word.de||'—'; $('#solSent').textContent=entry.sent.de||'—'; } else { $('#promptWord').textContent=entry.word.de||'—'; $('#promptWordSub').textContent=entry.pos?entry.pos:''; $('#promptSent').textContent=entry.sent.de||'—'; $('#solWord').innerHTML=formatZh(entry.word.zh, entry.word.py); $('#solSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); } $('#btnNext').disabled=false; $('#btnReveal').disabled=false; $('#btnPlayQ').disabled=false; $('#btnPlayA').disabled=false; disableRating(); renderModeUI(); updateCardInfo(); } // ID-Update
+function setCard(entry){ state.current=entry; $('#solBox').classList.add('masked'); state.startedAt=Date.now(); state.revealedAt=null; if(state.mode==='zh2de'){ $('#promptWord').innerHTML=(entry.word.zh||'—'); $('#promptWordSub').innerHTML=formatPinyinAndPos(entry.word.py, entry.pos); $('#promptSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); $('#solWord').textContent=entry.word.de||'—'; $('#solSent').textContent=entry.sent.de||'—'; } else { $('#promptWord').textContent=entry.word.de||'—'; $('#promptWordSub').textContent=entry.pos?entry.pos:''; $('#promptSent').textContent=entry.sent.de||'—'; $('#solWord').innerHTML=formatZh(entry.word.zh, entry.word.py); $('#solSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); } $('#btnNext').disabled=false; $('#btnReveal').disabled=false; $('#btnPlayQ').disabled=false; $('#btnPlayA').disabled=false; disableRating(); renderModeUI(); }
 
 function nextCard(){ if(!state.pool.length) return alert('Bitte Lektionen wählen und übernehmen.'); if(state.order==='seq'){ if(state.idx==null) state.idx=0; else state.idx=(state.idx+1)%state.pool.length; setCard(state.pool[state.idx]); } else { const e=state.pool[Math.floor(Math.random()*state.pool.length)]; setCard(e); } }
 function prevCard(){ if(state.order!=='seq' || !state.pool.length) return; if(state.idx==null) state.idx=0; else state.idx=(state.idx-1+state.pool.length)%state.pool.length; setCard(state.pool[state.idx]); }
@@ -115,7 +70,7 @@ function scrollToPageEnd(){ try{ window.scrollTo({ top: document.body.scrollHeig
 
 function startTraining(){ if(!state.trainingOn){ const sel=$('#lessonSelect'); state.selectedLessons.clear(); const picked=[]; for(const o of sel.selectedOptions){ state.selectedLessons.add(o.value); picked.push(o.value); } state.settings.lessons=picked; saveSettings(); gatherPool(); if(!state.pool.length){ alert('Bitte zuerst Lektion(en) übernehmen.'); return; } state.idx = (state.order==='seq') ? 0 : null; if(state.order==='seq') setCard(state.pool[state.idx]); else setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); state.trainingOn=true; updateTrainingBtn(); scrollToPageEnd(); setTimeout(scrollToPageEnd, 60); } else { stopTraining(); } }
 
-function stopTraining(){ state.trainingOn=false; updateTrainingBtn(); $('#btnPrev').disabled=true; $('#btnReveal').disabled=true; $('#btnNext').disabled=true; $('#btnPlayQ').disabled=true; $('#btnPlayA').disabled=true; disableRating(); $('#solBox').classList.add('masked'); $('#promptWord').textContent='—'; $('#promptWordSub').innerHTML='&nbsp;'; $('#promptSent').textContent='—'; $('#solWord').textContent='—'; $('#solSent').textContent='—'; scrollToTopHard(); updateCardInfo(); } // ID-Fallback
+function stopTraining(){ state.trainingOn=false; updateTrainingBtn(); $('#btnPrev').disabled=true; $('#btnReveal').disabled=true; $('#btnNext').disabled=true; $('#btnPlayQ').disabled=true; $('#btnPlayA').disabled=true; disableRating(); $('#solBox').classList.add('masked'); $('#promptWord').textContent='—'; $('#promptWordSub').innerHTML='&nbsp;'; $('#promptSent').textContent='—'; $('#solWord').textContent='—'; $('#solSent').textContent='—'; scrollToTopHard(); }
 function updateTrainingBtn(){ const b=$('#btnStart'); if(!b) return; b.textContent = state.trainingOn? 'Training stoppen ■' : 'Training starten ▶'; }
 
 function doReveal(){ $('#solBox').classList.remove('masked'); state.revealedAt=Date.now(); const ttr=state.revealedAt-(state.startedAt||state.revealedAt); if(ttr>0){ state.session.ttrSum+=ttr; state.session.ttrCount+=1; } enableRating(); renderSessionStats(); }
