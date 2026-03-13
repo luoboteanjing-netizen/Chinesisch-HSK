@@ -1,9 +1,8 @@
 /* r15.5 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
-//* Vollständiger JS-Code für HSK-Flashcard-App v1.5 – Inkl. ID-Fix, Excel-Parse, Training, Voice, State-Save.
- * Basierend auf User-Excel: DATA_START_ROW=3, COL_ID=8 (H=Lektion-ID), Skip für Meta ('*').
- * HTML-Elemente: #lessonSelect, #modeWord (radio), #modeSent (radio), #orderRandom (radio), #orderSeq, #startBtn, #nextBtn, #flipBtn, #learnBtn, #moreBtn, #card, #promptWord, #solutionWord, #lblKarte.
- * CSS: .card { transition: transform 0.6s; } .flipped { transform: rotateY(180deg); }
- */
+// Vollständiger JS-Code für HSK-Flashcard-App v1.5 – ID-Fix, Excel-Parse, Training, Voice, State-Save
+// Basierend auf User-Excel: DATA_START_ROW=3, COL_ID=8 (H=Lektion-ID), Skip für Meta ('*')
+// HTML-Elemente: #lessonSelect, #modeWord, #modeSent, #orderRandom, #orderSeq, #startBtn, #nextBtn, #flipBtn, #learnBtn, #moreBtn, #card, #promptWord, #solutionWord, #lblKarte
+// CSS-Beispiel: .card { transition: transform 0.6s; } .flipped { transform: rotateY(180deg); }
 
 let EXCEL_URL = './data/HSK_Lektionen.xlsx';  // Passe zu '/data/...' für GitHub Pages
 const DATA_START_ROW = 3;  // Start ab Zeile 3 (Index 2) – überspringt Header (1) + Meta (2)
@@ -37,8 +36,10 @@ function loadSettings() {
     const s = JSON.parse(localStorage.getItem(LS_KEYS.settings) || '{}');
     Object.assign(state.settings, s);
     // UI setzen
-    document.querySelector('input[name="mode"][value="' + state.settings.mode + '"]').checked = true;
-    document.querySelector('input[name="order"][value="' + state.settings.order + '"]').checked = true;
+    const modeInput = document.querySelector('input[name="mode"][value="' + state.settings.mode + '"]');
+    if (modeInput) modeInput.checked = true;
+    const orderInput = document.querySelector('input[name="order"][value="' + state.settings.order + '"]');
+    if (orderInput) orderInput.checked = true;
     console.log('🔍 DEBUG: Settings geladen:', state.settings);
   } catch (e) {
     console.warn('⚠️ DEBUG: Settings-Laden fehlgeschlagen.');
@@ -79,7 +80,7 @@ async function parseExcelBuffer(buf) {
       const row = rows[r] || [];
       if (r < r0 + 3) {  // Logs für erste 3 Rows
         console.log(`🔍 DEBUG: Row ${r + 1} (Index ${r}) – Vollständige Row:`, row);
-        console.log(`🔍 DEBUG: Row ${r + 1} – ID aus Spalte H (Index 7): "${row[7]}"`);
+        console.log(`🔍 DEBUG: Row ${r + 1} – ID aus Spalte H (Index 7): "${row[7] || ''}"`);
       }
       const w = {
         de: String(row[COL_WORD.de - 1] || '').trim().replace(/\r\n/g, ' / '),  // DE: Mehrzeilig zu '/'
@@ -93,7 +94,7 @@ async function parseExcelBuffer(buf) {
       };
       const pos = String(row[COL_POS - 1] || '').trim();
       let id = String(row[COL_ID - 1] || '').trim();
-      console.log(`🔍 DEBUG: Rohe ID aus Spalte H (Row ${r + 1}): "${row[COL_ID - 1]}" → Getrimmt: "${id}"`);
+      console.log(`🔍 DEBUG: Rohe ID aus Spalte H (Row ${r + 1}): "${row[COL_ID - 1] || ''}" → Getrimmt: "${id}"`);
       if (!id) {
         id = `Nr. ${r - r0 + 1}`;
         console.log(`🔍 DEBUG: Fallback-ID gesetzt: "${id}"`);
@@ -199,8 +200,10 @@ function startTraining() {
   state.session.done = 0;
   updateUI();  // Mode/Order setzen
   setCard();
-  document.getElementById('startBtn').style.display = 'none';  // Verstecke Start
-  document.getElementById('nextBtn').style.display = 'inline';  // Zeige Next
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.style.display = 'none';  // Verstecke Start
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) nextBtn.style.display = 'inline';  // Zeige Next
   console.log('🔍 DEBUG: Training gestartet – Erste Karte gesetzt.');
 }
 
@@ -210,16 +213,19 @@ function setCard() {
   const card = state.current;
   const isWord = state.settings.mode === 'word';
   const prompt = isWord ? card.word.py : card.sent.py;  // Prompt: PY
-  const solution = isWord ? card.word.zh + ' (' + card.pos + ')' : card.sent.zh;  // Solution: ZH + POS
-  const de = isWord ? card.word.de : card.sent.de;  // DE für Tooltip oder so
+  const solution = isWord ? card.word.zh + (card.pos ? ' (' + card.pos + ')' : '') : card.sent.zh;  // Solution: ZH + POS
+  const de = isWord ? card.word.de : card.sent.de;  // DE für Tooltip
 
-  document.getElementById('promptWord').textContent = prompt || '?';
-  document.getElementById('solutionWord').textContent = solution || '?';
-  // De-Info (optional, z.B. in Tooltip)
-  document.getElementById('promptWord').title = de || '';
+  const promptEl = document.getElementById('promptWord');
+  if (promptEl) {
+    promptEl.textContent = prompt || '?';
+    promptEl.title = de || '';  // Tooltip mit DE
+  }
+  const solutionEl = document.getElementById('solutionWord');
+  if (solutionEl) solutionEl.textContent = solution || '?';
   // Flip zurücksetzen
   const cardEl = document.getElementById('card');
-  cardEl.classList.remove('flipped');
+  if (cardEl) cardEl.classList.remove('flipped');
   if (state.settings.voice) speak(prompt);  // Voice für PY
   updateCardInfo();  // ID + Progress anzeigen
   console.log(`🔍 DEBUG: setCard – Prompt: "${prompt}", ID: "${card.id}"`);
@@ -269,11 +275,7 @@ function nextCard(status) {  // status: 'learned' oder 'more'
     stopTraining();
     return;
   }
-  if (state.settings.order === 'seq') {
-    state.current = state.pool[state.session.done];
-  } else {
-    state.current = state.pool[state.session.done];  // Random: Bereits geshuffelt
-  }
+  state.current = state.pool[state.session.done];  // Für random/seq (pool ist vorbereitet)
   setCard();
   console.log(`🔍 DEBUG: nextCard – Status: ${status}, Nächste: ${state.session.done + 1}/${state.pool.length}`);
 }
@@ -281,7 +283,7 @@ function nextCard(status) {  // status: 'learned' oder 'more'
 // flipCard: Flip Karte (zeige Solution)
 function flipCard() {
   const cardEl = document.getElementById('card');
-  cardEl.classList.toggle('flipped');
+  if (cardEl) cardEl.classList.toggle('flipped');
   console.log('🔍 DEBUG: Karte geflippt.');
 }
 
@@ -304,19 +306,26 @@ function stopTraining() {
   state.current = null;
   state.pool = [];
   state.session = { done: 0, total: 0 };
-  document.getElementById('startBtn').style.display = 'inline';
-  document.getElementById('nextBtn').style.display = 'none';
-  document.getElementById('card').classList.remove('flipped');
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.style.display = 'inline';
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) nextBtn.style.display = 'none';
+  const cardEl = document.getElementById('card');
+  if (cardEl) cardEl.classList.remove('flipped');
   updateCardInfo();
   console.log('🔍 DEBUG: Training gestoppt.');
 }
 
 // updateUI: Settings in UI setzen
 function updateUI() {
-  state.settings.mode = document.querySelector('input[name="mode"]:checked')?.value || 'word';
-  state.settings.order = document.querySelector('input[name="order"]:checked')?.value || 'random';
-  state.settings.voice = document.getElementById('voiceToggle')?.checked || true;  // Falls Checkbox
+  const mode = document.querySelector('input[name="mode"]:checked');
+  if (mode) state.settings.mode = mode.value;
+  const order = document.querySelector('input[name="order"]:checked');
+  if (order) state.settings.order = order.value;
+  const voiceEl = document.getElementById('voiceToggle');
+  if (voiceEl) state.settings.voice = voiceEl.checked;
   saveSettings();
+  console.log('🔍 DEBUG: UI-Settings aktualisiert:', state.settings);
 }
 
 // Event-Listeners
@@ -338,15 +347,15 @@ function initEvents() {
   if (flipBtn) flipBtn.addEventListener('click', flipCard);
   const stopBtn = document.getElementById('stopBtn');
   if (stopBtn) stopBtn.addEventListener('click', stopTraining);
-  // Lektion-Übernehmen (falls Button)
+  // Lektion-Übernehmen (falls separater Button)
   const loadBtn = document.getElementById('loadBtn');
-  if (loadBtn) loadBtn.addEventListener('click', () => { gatherPool(document.getElementById('lessonSelect').value); });
+  if (loadBtn) loadBtn.addEventListener('click', () => gatherPool(document.getElementById('lessonSelect').value));
   console.log('🔍 DEBUG: Events initialisiert.');
 }
 
 // DOMContentLoaded: Initialisierung
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🔍 DEBUG: DOM geladen – Starte Setup...');
+  console.log('🔍 DEBUG: JS-Code geladen – Kein Syntax-Fehler! Starte Setup...');
   loadSettings();
   loadProgress();
   loadExcel();  // Automatisch laden
@@ -356,5 +365,6 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('✅ DEBUG: Voice (TTS) verfügbar.');
   } else {
     console.warn('⚠️ DEBUG: Kein TTS-Support – Voice deaktivieren.');
+    state.settings.voice = false;
   }
 });
