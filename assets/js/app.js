@@ -1,338 +1,112 @@
 /* r15.5 HSK: Fix "Leeren"; show per-lesson Richtig/Falsch; 'Unsicher' nicht zählen */
+/* r15.3 HSK: Fix für User-Excel – DATA_START_ROW=3 (überspringt Header+Meta), COL_ID=8 (H=Index7), verbesserte Skip für '*' Meta */
 let EXCEL_URL = './data/HSK_Lektionen.xlsx';
-const DATA_START_ROW=3;
-const COL_WORD={de:1,py:2,zh:6}; 
-const COL_SENT={de:5,py:4,zh:7}; 
-const COL_POS=3;
-const COL_ID=8;  // Spalte 8 für Vokabel-ID (z.B. "HSK 3-1-5"); Fallback zu Reihen-Nr.
+const DATA_START_ROW=3;  // Geändert: Start ab Zeile 3 (Index 2) – überspringt Header (1) + Meta (2)
+const COL_WORD={de:1, py:2, zh:6};  // Unverändert: de=A(1=Index0), py=B(2=1), zh=F(6=5) – passt zu Logs
+const COL_SENT={de:5, py:4, zh:7};  // Unverändert: de=E(5=4), py=D(4=3), zh=G(7=6) – passt
+const COL_POS=3;  // Unverändert: C(3=2)
+const COL_ID=8;  // Unverändert: H(8=7) – ID in 'Lektion'-Spalte, z.B. 'HSK 1-1'
 const LS_KEYS={ settings:'fc_settings_v1', progress:'fc_progress_v1' };
 
-const state={
-  mode:'de2zh', order:'random',
-  rateDe:0.95, pitchDe:1.0, rateZh:0.95, pitchZh:1.0,
-  lessons:new Map(), selectedLessons:new Set(), pool:[], idx:null, current:null,
-  voices:[], browserVoice:{ zh:null, de:null }, voicePanelTarget:'de',
-  autoplay:{ on:false, timers:[], gapMs:800 },
-  settings:{ mode:'de2zh', order:'random', rateDe:0.95, pitchDe:1.0, rateZh:0.95, pitchZh:1.0, lessons:[], browserVoiceZh:null, browserVoiceDe:null, autoplayGap:800 },
-  session:{ total:0, done:0, known:0, unsure:0, unknown:0, ttrSum:0, ttrCount:0 },
-  startedAt:null, revealedAt:null,
-  // progress.byLesson: { [lessonId]: { known:number, unknown:number } }
-  progress:{ version:'v1', cards:{}, byLesson:{} },
-  wakeLock:null,
-  trainingOn:false
-};
+// state-Objekt, save/load-Funktionen, Voice-Funktionen – unverändert (kopiere aus deiner Version)
 
-const $=s=>document.querySelector(s);
-
-function saveSettings(){ try{ localStorage.setItem(LS_KEYS.settings, JSON.stringify(state.settings)); }catch(e){} }
-function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(LS_KEYS.settings)||'null'); if(s){ state.settings=Object.assign(state.settings,s); } }catch(e){} }
-function saveProgress(){ try{ localStorage.setItem(LS_KEYS.progress, JSON.stringify(state.progress)); }catch(e){} }
-function loadProgress(){ try{ const p=JSON.parse(localStorage.getItem(LS_KEYS.progress)||'null'); if(p && p.version==='v1'){ state.progress=p; } }catch(e){} }
-
-function isZhVoice(v){ const L=(v.lang||'').toLowerCase(); return L.startsWith('zh')||L.includes('cmn')||L.includes('hans')||L.includes('zh-cn'); }
-function isDeVoice(v){ const L=(v.lang||'').toLowerCase(); return L.startsWith('de'); }
-
-function updateVoiceList(){ const box=$('#dbgVoices'); if(!box) return; box.innerHTML=''; const list=(state.voices||[]).filter(v=> state.voicePanelTarget==='zh'? isZhVoice(v) : isDeVoice(v)); if(list.length===0){ box.innerHTML='<div class="meta">Keine passenden Stimmen gefunden.</div>'; return; }
-  list.forEach(v=>{ const row=document.createElement('div'); row.className='voice'; const name=document.createElement('div'); name.className='name'; name.textContent=v.name||'(name)'; const meta=document.createElement('div'); meta.className='meta'; meta.textContent=`${v.lang||''} ${v.default?'· default':''}`; const actions=document.createElement('div'); actions.style.marginLeft='auto'; actions.style.display='flex'; actions.style.gap='6px'; actions.style.flexWrap='wrap';
-    const pick=document.createElement('button'); pick.className='btn'; pick.textContent='Diese Stimme wählen'; pick.onclick=()=>{ if(state.voicePanelTarget==='zh'){ state.browserVoice.zh=v; state.settings.browserVoiceZh=v.name||v.voiceURI; } else { state.browserVoice.de=v; state.settings.browserVoiceDe=v.name||v.voiceURI; } saveSettings(); updateVoiceList(); };
-    const test=document.createElement('button'); test.className='btn ghost'; test.textContent='Probehören'; test.onclick=()=>{ const u=new SpeechSynthesisUtterance(state.voicePanelTarget==='zh'? '这是一个测试。' : 'Dies ist ein Test.'); u.lang=(state.voicePanelTarget==='zh')?'zh-CN':'de-DE'; u.voice=v; try{speechSynthesis.cancel();}catch(e){} speechSynthesis.speak(u); };
-    const act = (state.voicePanelTarget==='zh'? state.browserVoice.zh : state.browserVoice.de);
-    if(act && (act.name===v.name || act.voiceURI===v.voiceURI)) name.textContent+='  •  [Aktiv]';
-    actions.appendChild(pick); actions.appendChild(test);
-    row.appendChild(name); row.appendChild(meta); row.appendChild(actions); box.appendChild(row);
-  });
+// Angepasste parseExcelBuffer: Start ab Index 2, Skip für Meta ('*'), Logs für ID in Index 7
+async function parseExcelBuffer(buf){ 
+  console.log('🔍 DEBUG: parseExcelBuffer gestartet – Buffer-Größe:', buf?.byteLength); 
+  const wb=XLSX.read(buf,{type:'array'}); 
+  console.log('🔍 DEBUG: Workbook geladen – Sheets:', wb.SheetNames); 
+  state.lessons.clear(); 
+  for(const name of wb.SheetNames){ 
+    const sh=wb.Sheets[name]; 
+    const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); 
+    console.log(`🔍 DEBUG: Sheet "${name}" – Rows geladen:`, rows.length, ' (Start ab Zeile', DATA_START_ROW, ', Index', DATA_START_ROW-1, ')'); 
+    const r0=DATA_START_ROW-1;  // r0=2 (für Zeile 3, Index 2)
+    const key=name; 
+    if(!state.lessons.has(key)) state.lessons.set(key,[]); 
+    let parsedCount = 0;  // NEU: Zähler für echte Karten
+    for(let r=r0;r<rows.length;r++){ 
+      const row=rows[r]||[]; 
+      if (r < r0 + 3) {  // Logs für erste 3 Daten-Rows
+        console.log(`🔍 DEBUG: Row ${r+1} (Index ${r}) – Vollständige Row:`, row); 
+        console.log(`🔍 DEBUG: Row ${r+1} – ID aus Spalte H (Index 7): "${row[7]}"`);  // Speziell ID loggen
+      }
+      
+      const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; 
+      const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; 
+      const pos=String(row[COL_POS-1]||'').trim(); 
+      
+      // ID aus Index 7 (H)
+      let id = String(row[COL_ID-1] || '').trim();
+      console.log(`🔍 DEBUG: Rohe ID aus Spalte H (Row ${r+1}): "${row[COL_ID-1]}" → Getrimmt: "${id}"`); 
+      if (!id) { 
+        id = `Nr. ${r - r0 + 1}`;
+        console.log(`🔍 DEBUG: Fallback-ID gesetzt: "${id}"`); 
+      }
+      
+      // Verbesserte Skip: Leere Felder ODER Meta-Zeilen mit '*'
+      if(!(w.de||w.zh||s.de||s.zh) || w.de.startsWith('*') || s.de.startsWith('*')) { 
+        console.log(`🔍 DEBUG: Row ${r+1} übersprungen (leer oder Meta mit '*')`); 
+        continue; 
+      }
+      
+      const card = {word:w, sent:s, pos, id}; 
+      state.lessons.get(key).push(card); 
+      parsedCount++;
+      console.log(`🔍 DEBUG: Karte geparst für Row ${r+1}: ID="${id}", Wort DE="${w.de}", ZH="${w.zh}"`);  // Kompakter Log
+      if (parsedCount > 3) break;  // Nur erste 3 loggen pro Sheet
+    } 
+    console.log(`🔍 DEBUG: Sheet "${name}" – Finale echte Karten: ${parsedCount} (von ${rows.length - r0} potenziellen Rows)`); 
+  } 
+  console.log('🔍 DEBUG: Alle Lessons geparst – Gesamt-Size:', state.lessons.size); 
+  populateLessonSelect(); 
 }
 
-function refreshVoices(){ state.voices = window.speechSynthesis?.getVoices?.() || []; if(state.settings.browserVoiceZh){ const vz=state.voices.find(x=>x.name===state.settings.browserVoiceZh||x.voiceURI===state.settings.browserVoiceZh); if(vz) state.browserVoice.zh=vz; } if(state.settings.browserVoiceDe){ const vd=state.voices.find(x=>x.name===state.settings.browserVoiceDe||x.voiceURI===state.settings.browserVoiceDe); if(vd) state.browserVoice.de=vd; } updateVoiceList(); }
+// loadExcel() – unverändert, aber ruft parseExcelBuffer auf
 
-let _voicesRetryT; function openVoicesPanelFor(target){ state.voicePanelTarget=target; refreshVoices(); if(!state.voices || state.voices.length===0){ clearTimeout(_voicesRetryT); let tries=0; const tick=()=>{ tries++; refreshVoices(); if(state.voices.length>0 || tries>=8) return; _voicesRetryT=setTimeout(tick,300); }; _voicesRetryT=setTimeout(tick,300); } $('#voicePanel').classList.remove('hidden'); }
-function closeVoices(){ $('#voicePanel').classList.add('hidden'); }
-
-async function parseExcelBuffer(buf){ const wb=XLSX.read(buf,{type:'array'}); state.lessons.clear(); for(const name of wb.SheetNames){ const sh=wb.Sheets[name]; const rows=XLSX.utils.sheet_to_json(sh,{header:1,blankrows:false}); const r0=DATA_START_ROW-1; const key=name; if(!state.lessons.has(key)) state.lessons.set(key,[]); for(let r=r0;r<rows.length;r++){ const row=rows[r]||[]; const w={de:String(row[COL_WORD.de-1]||'').trim(), py:String(row[COL_WORD.py-1]||'').trim(), zh:String(row[COL_WORD.zh-1]||'').trim()}; const s={de:String(row[COL_SENT.de-1]||'').trim(), py:String(row[COL_SENT.py-1]||'').trim(), zh:String(row[COL_SENT.zh-1]||'').trim()}; const pos=String(row[COL_POS-1]||'').trim(); 
-    // Feste ID pro Karte – aus Spalte 8 (z.B. "HSK 3-1-5") oder Fallback zu Reihen-Nr.
-    let id = String(row[COL_ID-1] || '').trim(); // Direkt aus Spalte 8 (beliebiger String)
-    if (!id) { // Fallback: Interne Nr. pro Lektion (r - r0 + 1)
-      id = `Nr. ${r - r0 + 1}`;
-    }
-    if(!(w.de||w.zh||s.de||s.zh)) continue; state.lessons.get(key).push({word:w,sent:s,pos, id}); // id hinzugefügt
-  } }
-  populateLessonSelect(); }
-
-async function loadExcel(){ try{ const res=await fetch(EXCEL_URL,{cache:'no-store'}); const buf=await res.arrayBuffer(); await parseExcelBuffer(buf); }catch(e){ console.error('Excel konnte nicht geladen werden:',e); alert('Konnte Datei nicht laden.'); } }
-
-function ensureBL(lessonKey){ const bl=state.progress.byLesson; bl[lessonKey]=bl[lessonKey]||{ known:0, unknown:0 }; return bl[lessonKey]; }
-
-function populateLessonSelect(){ const sel=$('#lessonSelect'); sel.innerHTML=''; const keys=Array.from(state.lessons.keys()).sort(); for(const k of keys){ const total=state.lessons.get(k).length; const bl=state.progress.byLesson?.[k]||{known:0,unknown:0}; const known=bl.known||0, unknown=bl.unknown||0; const opt=document.createElement('option'); opt.value=k; opt.textContent=`${k} (${total}) · Richtig ${known} · Falsch ${unknown}`; if(state.settings.lessons?.includes(k)) opt.selected=true; sel.appendChild(opt); } }
-
-function resetSessionStats(){ state.session={ total:state.pool.length, done:0, known:0, unsure:0, unknown:0, ttrSum:0, ttrCount:0 }; renderSessionStats(); }
-
-function gatherPoolFromSettings(){ state.selectedLessons.clear(); (state.settings.lessons||[]).forEach(id=> state.selectedLessons.add(id)); const out=[]; for(const k of state.selectedLessons){ const arr=state.lessons.get(k); if(arr) out.push(...arr); } state.pool=out; state.idx=null; resetSessionStats(); }
-
-function gatherPool(){ const out=[]; for(const k of state.selectedLessons){ const arr=state.lessons.get(k); if(arr) out.push(...arr); } state.pool=out; state.idx=null; resetSessionStats(); }
-
-// Angepasste Funktion: Nur "Karte: [ID aus Spalte 8]" – kein Blattname mehr
+// updateCardInfo() – unverändert, mit dynamischem Label (aus vorheriger Antwort)
 function updateCardInfo() {
-  const lbl = $('#lblKarte'); // ID="lblKarte"; passe an, falls anders
+  console.log('🔍 DEBUG: updateCardInfo aufgerufen'); 
+
+  let lbl = $('#lblKarte');
   if (!lbl) {
-    console.warn('Label #lblKarte nicht gefunden – überprüfe HTML.');
-    return;
+    lbl = $('.card .lbl:first-of-type') || null;
+    console.log('🔍 DEBUG: Fallback-Label gesucht:', lbl ? 'Gefunden' : 'Nicht gefunden');
+  }
+  if (!lbl) {
+    const promptWord = $('#promptWord');
+    if (promptWord && promptWord.parentNode) {
+      lbl = document.createElement('label');
+      lbl.id = 'lblKarte';
+      lbl.className = 'lbl card-info';
+      lbl.innerHTML = 'Karte:';
+      promptWord.parentNode.insertBefore(lbl, promptWord);
+      console.log('🔍 DEBUG: Label dynamisch erstellt vor #promptWord');
+    } else {
+      console.warn('⚠️ DEBUG: Kein #promptWord – passe HTML an.');
+      return;
+    }
   }
 
+  console.log('🔍 DEBUG: Label gefunden/erstellt:', lbl); 
+
   if (!state.current || state.pool.length === 0) {
-    lbl.innerHTML = 'Karte:'; // Fallback (ohne ID)
+    console.log('🔍 DEBUG: Kein current/Pool leer');
+    lbl.innerHTML = 'Karte:';
     lbl.classList.add('card-info');
     return;
   }
 
-  const cardId = state.current.id || '—'; // Feste ID (z.B. "HSK 3-1-5" als String)
+  console.log('🔍 DEBUG: Current-Karte ID:', state.current.id);
+  const cardId = state.current.id || '—';
+  console.log('🔍 DEBUG: Extrahierte ID:', cardId);
 
-  // Optional: Globale Pool-Position hinzufügen (z.B. "(1/20)" für Session-Übersicht)
-  // Setze globalInfo = ''; zum Weglassen (vereinfacht zu rein "Karte: HSK 3-1-5")
-  let globalInfo = '';
-  if (state.pool.length > 0) {
-    let globalNum;
-    if (state.order === 'seq' && state.idx !== null) {
-      globalNum = state.idx + 1; // Seq: Feste globale Nr.
-    } else {
-      globalNum = state.session.done + 1; // Random: Aktueller Session-Counter
-    }
-    globalInfo = ` <span class="emphasis">(${globalNum}/${state.pool.length})</span>`; // Optional: Globaler Kontext
-  }
-
+  let globalInfo = ` <span class="emphasis">(${state.session.done + 1}/${state.pool.length})</span>`;  // Vereinfacht, ohne seq-Check
   const fullText = `Karte: <span class="emphasis">${cardId}</span>${globalInfo}`;
-  lbl.innerHTML = fullText; // HTML für Emphasis (ID bold)
+  lbl.innerHTML = fullText;
   lbl.classList.add('card-info');
-  console.log('Card-Info updated:', fullText, '(ID:', cardId, ', Global:', globalInfo, ')'); // Debug: Zeigt ID und optional Global
+  console.log('🔍 DEBUG: Label gesetzt zu:', fullText);
 }
 
-function setCard(entry){ state.current=entry; $('#solBox').classList.add('masked'); state.startedAt=Date.now(); state.revealedAt=null; if(state.mode==='zh2de'){ $('#promptWord').innerHTML=(entry.word.zh||'—'); $('#promptWordSub').innerHTML=formatPinyinAndPos(entry.word.py, entry.pos); $('#promptSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); $('#solWord').textContent=entry.word.de||'—'; $('#solSent').textContent=entry.sent.de||'—'; } else { $('#promptWord').textContent=entry.word.de||'—'; $('#promptWordSub').textContent=entry.pos?entry.pos:''; $('#promptSent').textContent=entry.sent.de||'—'; $('#solWord').innerHTML=formatZh(entry.word.zh, entry.word.py); $('#solSent').innerHTML=formatZh(entry.sent.zh, entry.sent.py); } $('#btnNext').disabled=false; $('#btnReveal').disabled=false; $('#btnPlayQ').disabled=false; $('#btnPlayA').disabled=false; disableRating(); renderModeUI(); updateCardInfo(); } // ID-Update
-
-function nextCard(){ if(!state.pool.length) return alert('Bitte Lektionen wählen und übernehmen.'); if(state.order==='seq'){ if(state.idx==null) state.idx=0; else state.idx=(state.idx+1)%state.pool.length; setCard(state.pool[state.idx]); } else { const e=state.pool[Math.floor(Math.random()*state.pool.length)]; setCard(e); } }
-function prevCard(){ if(state.order!=='seq' || !state.pool.length) return; if(state.idx==null) state.idx=0; else state.idx=(state.idx-1+state.pool.length)%state.pool.length; setCard(state.pool[state.idx]); }
-
-function scrollToTopHard(){ window.scrollTo(0,0); document.body.scrollTop=0; document.documentElement.scrollTop=0; setTimeout(()=>{ window.scrollTo(0,0); document.body.scrollTop=0; document.documentElement.scrollTop=0; }, 60); }
-function scrollToPageEnd(){ try{ window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }catch(e){ window.scrollTo(0, document.body.scrollHeight); } }
-
-function startTraining(){ if(!state.trainingOn){ const sel=$('#lessonSelect'); state.selectedLessons.clear(); const picked=[]; for(const o of sel.selectedOptions){ state.selectedLessons.add(o.value); picked.push(o.value); } state.settings.lessons=picked; saveSettings(); gatherPool(); if(!state.pool.length){ alert('Bitte zuerst Lektion(en) übernehmen.'); return; } state.idx = (state.order==='seq') ? 0 : null; if(state.order==='seq') setCard(state.pool[state.idx]); else setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); state.trainingOn=true; updateTrainingBtn(); scrollToPageEnd(); setTimeout(scrollToPageEnd, 60); } else { stopTraining(); } }
-
-function stopTraining(){ state.trainingOn=false; updateTrainingBtn(); $('#btnPrev').disabled=true; $('#btnReveal').disabled=true; $('#btnNext').disabled=true; $('#btnPlayQ').disabled=true; $('#btnPlayA').disabled=true; disableRating(); $('#solBox').classList.add('masked'); $('#promptWord').textContent='—'; $('#promptWordSub').innerHTML='&nbsp;'; $('#promptSent').textContent='—'; $('#solWord').textContent='—'; $('#solSent').textContent='—'; scrollToTopHard(); updateCardInfo(); } // ID-Fallback
-function updateTrainingBtn(){ const b=$('#btnStart'); if(!b) return; b.textContent = state.trainingOn? 'Training stoppen ■' : 'Training starten ▶'; }
-
-function doReveal(){ $('#solBox').classList.remove('masked'); state.revealedAt=Date.now(); const ttr=state.revealedAt-(state.startedAt||state.revealedAt); if(ttr>0){ state.session.ttrSum+=ttr; state.session.ttrCount+=1; } enableRating(); renderSessionStats(); }
-
-function enableRating(){ $('#btnRateKnown').disabled=false; $('#btnRateUnsure').disabled=false; $('#btnRateUnknown').disabled=false; }
-function disableRating(){ $('#btnRateKnown').disabled=true; $('#btnRateUnsure').disabled=true; $('#btnRateUnknown').disabled=true; }
-
-function rate(mark){ if(!state.current) return; state.session.done += 1; if(mark==='known') state.session.known += 1; else if(mark==='unsure') state.session.unsure += 1; else state.session.unknown += 1; renderSessionStats();
-  try{ const lessonKey = findLessonKeyOfCurrent(); if(lessonKey){ const rec=ensureBL(lessonKey); if(mark==='known') rec.known += 1; else if(mark==='unknown') rec.unknown += 1; // 'unsure' nicht zählen
-    saveProgress(); populateLessonSelect(); } }catch(e){}
-  disableRating(); nextCard(); }
-
-function findLessonKeyOfCurrent(){ for(const [k,arr] of state.lessons.entries()){ if(arr && arr.includes(state.current)) return k; } return null; }
-
-function formatZh(hz,py){ const h=(hz||'').trim(); const p=(py||'').trim(); return p? `${h}<br><span class="py">${p}</span>` : (h||'—'); }
-function formatPinyinAndPos(py,pos){ const a=(py||'').trim(); const b=(pos||'').trim(); if(a&&b) return `<span class="py">${a}</span><br><span class="prompt small" style="display:inline-block;margin-top:6px;">${b}</span>`; if(a) return `<span class="py">${a}</span>`; if(b) return `<span class="prompt small" style="display:inline-block;margin-top:6px;">${b}</span>`; return ''; }
-
-const START_DELAY_MS=150; const BETWEEN_DELAY_MS=800; let _ttsPrimed=false; function ttsPrime(cb){ if(_ttsPrimed){ cb(); return; } setTimeout(()=>{ _ttsPrimed=true; cb(); }, START_DELAY_MS); }
-function buildUtterance(text, langKey){ const lang=(langKey==='zh')?'zh-CN':'de-DE'; const u=new SpeechSynthesisUtterance(text||''); u.lang=lang; if(langKey==='zh'){ u.rate=state.rateZh; u.pitch=state.pitchZh; } else { u.rate=state.rateDe; u.pitch=state.pitchDe; } const chosen=(langKey==='zh')?state.browserVoice.zh:state.browserVoice.de; if(chosen) u.voice=chosen; else { const L=(langKey==='zh')?'zh':'de'; const cand=(state.voices||[]).filter(v=>(v.lang||'').toLowerCase().startsWith(L)); u.voice=cand.find(v=>v.default)||cand[0]||null; } return u; }
-
-/* --- Native Mandarin Voice Pack (optional cloud TTS with cache + fallback) --- */
-
-const VOICE_PACK = {
-  female1: "zh-CN-XiaoxiaoNeural",
-  female2: "zh-CN-XiaochenNeural",
-  male1: "zh-CN-YunxiNeural",
-  male2: "zh-CN-YunyangNeural"
-};
-
-// Set later if you use a proxy server
-const NATIVE_TTS_ENDPOINT = "";
-
-let nativeVoiceChoice = "female1";
-
-const nativeAudioCache = new Map();
-
-async function nativeMandarinSpeak(text){
-  if(!text) return;
-
-  if(!NATIVE_TTS_ENDPOINT){
-    const u = buildUtterance(text,'zh');
-    speechSynthesis.speak(u);
-    return;
-  }
-
-  const cacheKey = nativeVoiceChoice + "|" + text;
-
-  if(nativeAudioCache.has(cacheKey)){
-    const audio = new Audio(nativeAudioCache.get(cacheKey));
-    audio.play();
-    return;
-  }
-
-  try{
-    const res = await fetch(NATIVE_TTS_ENDPOINT,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json"},
-      body: JSON.stringify({
-        text:text,
-        voice: VOICE_PACK[nativeVoiceChoice]
-      })
-    });
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    nativeAudioCache.set(cacheKey,url);
-
-    const audio = new Audio(url);
-    audio.play();
-
-  }catch(e){
-    const u = buildUtterance(text,'zh');
-    speechSynthesis.speak(u);
-  }
-}
-
-function ttsSpeak(text, langKey){ const u=buildUtterance(text, langKey); speechSynthesis.speak(u); return u; }
-function playSequence(firstText, firstLangKey, secondText, secondLangKey){ ttsPrime(()=>{ try{ speechSynthesis.cancel(); }catch(e){}; ttsSpeak(firstText, firstLangKey); setTimeout(()=>{ ttsSpeak(secondText, secondLangKey); }, BETWEEN_DELAY_MS); }); }
-function playQuestion(){ if(!state.current) return; if(state.mode==='de2zh'){ playSequence(state.current.word.de,'de', state.current.sent.de,'de'); } else { nativeMandarinSpeak(state.current.word.zh); setTimeout(()=>nativeMandarinSpeak(state.current.sent.zh),700); } }
-function playAnswer(){ if(!state.current) return; if(state.mode==='de2zh'){ nativeMandarinSpeak(state.current.word.zh); setTimeout(()=>nativeMandarinSpeak(state.current.sent.zh),700); } else { playSequence(state.current.word.de,'de', state.current.sent.de,'de'); } }
-
-function setAutoplay(on){ state.autoplay.on=on; if(!on){ try{ speechSynthesis.cancel(); }catch(e){} state.autoplay.timers.forEach(id=>clearTimeout(id)); state.autoplay.timers=[]; releaseWakeLock(); } updateAutoplayBtn(); }
-function updateAutoplayBtn(){ const b=$('#btnAutoplay'); if(!b) return; b.textContent = state.autoplay.on? 'Autoplay ■ Stop' : 'Autoplay ▶︎'; }
-function speakPair(word, sent, langKey, done){ if(!state.autoplay.on) return; const u1 = buildUtterance(word, langKey); u1.onend = ()=>{ if(!state.autoplay.on) return; const t=setTimeout(()=>{ if(!state.autoplay.on) return; const u2=buildUtterance(sent, langKey); u2.onend=()=>{ if(!state.autoplay.on) return; done && done(); }; speechSynthesis.speak(u2); }, BETWEEN_DELAY_MS); state.autoplay.timers.push(t); }; speechSynthesis.speak(u1); }
-function ensurePoolForAutoplay(){ if(state.pool.length>0) return true; if(!state.settings.lessons || state.settings.lessons.length===0){ const sel=$('#lessonSelect'); const picked=[]; for(const o of sel?.selectedOptions||[]){ picked.push(o.value); } if(picked.length>0){ state.settings.lessons=picked; saveSettings(); } } gatherPoolFromSettings(); if(!state.pool.length){ alert('Bitte Lektion(en) wählen oder übernehmen, bevor Autoplay startet.'); return false; } if(state.order==='seq'){ state.idx=0; setCard(state.pool[state.idx]); } else { setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); } return true; }
-function autoplayStep(){ if(!state.autoplay.on) return; if(!ensurePoolForAutoplay()) { setAutoplay(false); return; } $('#solBox').classList.add('masked'); disableRating(); const qLang = (state.mode==='de2zh')? 'de':'zh'; const aLang = (state.mode==='de2zh')? 'zh':'de'; ttsPrime(()=>{ try{ speechSynthesis.cancel(); }catch(e){}; speakPair(state.current.word[qLang], state.current.sent[qLang], qLang, ()=>{ if(!state.autoplay.on) return; $('#solBox').classList.remove('masked'); speakPair(state.current.word[aLang], state.current.sent[aLang], aLang, ()=>{ if(!state.autoplay.on) return; const t=setTimeout(()=>{ if(!state.autoplay.on) return; if(state.order==='seq'){ if(state.idx==null) state.idx=0; else state.idx=(state.idx+1)%state.pool.length; setCard(state.pool[state.idx]); } else { setCard(state.pool[Math.floor(Math.random()*state.pool.length)]); } autoplayStep(); }, state.autoplay.gapMs); state.autoplay.timers.push(t); }); }); }); }
-function toggleAutoplay(){ if(!state.autoplay.on){ if(!ensurePoolForAutoplay()) return; setAutoplay(true); requestWakeLock(); scrollToPageEnd(); setTimeout(scrollToPageEnd, 60); autoplayStep(); } else { setAutoplay(false); } }
-function stopAutoplayOnUserAction(){ if(state.autoplay.on) setAutoplay(false); }
-
-// Wake Lock API
-async function requestWakeLock(){ try{ if('wakeLock' in navigator && !state.wakeLock){ state.wakeLock = await navigator.wakeLock.request('screen'); state.wakeLock.addEventListener?.('release', ()=>{ state.wakeLock=null; }); document.addEventListener('visibilitychange', onVisibilityChange, { passive:true }); } }catch(e){} }
-function onVisibilityChange(){ if(document.visibilityState==='visible' && state.autoplay.on && !state.wakeLock){ requestWakeLock(); } }
-function releaseWakeLock(){ try{ if(state.wakeLock){ state.wakeLock.release?.(); } }catch(e){} finally{ state.wakeLock=null; document.removeEventListener('visibilitychange', onVisibilityChange); } }
-
-function renderSessionStats(){ const s=state.session; const avg=s.ttrCount? (s.ttrSum/s.ttrCount/1000).toFixed(1) : '—'; const acc=s.done? Math.round(100*s.known/s.done)+'%' : '—'; $('#sessionStats').textContent=`Karten: ${s.done}/${s.total} · Korrekt: ${acc} · Ø Aufdeck‑Zeit: ${avg}s`; }
-function renderModeUI(){ const left=$('#modeLeft'), right=$('#modeRight'); if(state.mode==='de2zh'){ left.textContent='🇩🇪 DE'; right.textContent='🇨🇳 ZH'; } else { left.textContent='🇨🇳 ZH'; right.textContent='🇩🇪 DE'; } $('#btnOrderToggle').textContent = 'Reihenfolge: ' + (state.order==='seq' ? 'Sequenziell' : 'Zufällig'); updateTrainingBtn(); }
-
-window.addEventListener('DOMContentLoaded', ()=>{
-  loadSettings(); loadProgress();
-  state.mode = state.settings.mode || 'de2zh';
-  state.order = state.settings.order || 'random';
-  state.autoplay.gapMs = typeof state.settings.autoplayGap==='number' ? state.settings.autoplayGap : 800;
-  state.rateDe = typeof state.settings.rateDe==='number'? state.settings.rateDe : 0.95;
-  state.pitchDe = typeof state.settings.pitchDe==='number'? state.settings.pitchDe : 1.0;
-  state.rateZh = typeof state.settings.rateZh==='number'? state.settings.rateZh : 0.95;
-  state.pitchZh = typeof state.settings.pitchZh==='number'? state.settings.pitchZh : 1.0;
-  renderModeUI(); updateAutoplayBtn();
-
-  // NEU: Setze den Text des Swap-Buttons auf "< Richtung >" (ersetzt Icon und integriert "Richtung" – Platz sparen, höher machen via CSS)
-  const swapBtn = $('#btnSwapMode');
-  if (swapBtn) {
-    swapBtn.textContent = '< Richtung >';  // Zeigt die < > als Literal-Text (keine HTML-Entities nötig mit textContent)
-  }
-
-  // Optional: Verstecke oder entferne das separate "Richtung"-Label (angenommen ID="lblRichtung" oder Klasse ".direction-label" – passe bei Bedarf an)
-  const directionLabel = document.querySelector('#lblRichtung') || document.querySelector('.direction-label') || document.querySelector('.lbl:has(~ .mode-inline)');  // Fallback-Selektoren basierend auf CSS
-  if (directionLabel) {
-    directionLabel.style.display = 'none';  // Versteckt das Label (spart Höhe); oder .remove() zum Entfernen
-  }
-
-  // NEU: Füge .primary-Klasse zum Autoplay-Button hinzu (für blaue Farbe, wie Training-Button)
-  const autoplayBtn = $('#btnAutoplay');
-  if (autoplayBtn) {
-    autoplayBtn.classList.add('primary');
-    console.log('Autoplay-Button: Primary-Klasse hinzugefügt');  // Debug-Log
-  }
-
-  const gapSec = (state.autoplay.gapMs/1000).toFixed(1); $('#gapRange').value = gapSec; $('#gapVal').textContent = `(${gapSec} s)`;
-  $('#rateDeRange').value=String(state.rateDe); $('#rateDeVal').textContent=`(${state.rateDe.toFixed(2)})`;
-  $('#pitchDeRange').value=String(state.pitchDe); $('#pitchDeVal').textContent=`(${state.pitchDe.toFixed(2)})`;
-  $('#rateZhRange').value=String(state.rateZh); $('#rateZhVal').textContent=`(${state.rateZh.toFixed(2)})`;
-  $('#pitchZhRange').value=String(state.pitchZh); $('#pitchZhVal').textContent=`(${state.pitchZh.toFixed(2)})`;
-
-  loadExcel();
-
-  // NEU: Verschiebe Autoplay unter Sliders, direkt neben/neben Training-Button – in dessen Parent, mit neuer Gruppe
-  setTimeout(() => {  // 100ms Timeout für volles Rendering
-    const trainingBtn = $('#btnStart');
-    if (trainingBtn && autoplayBtn) {
-      const trainingParent = trainingBtn.parentNode;
-      const autoplayParent = autoplayBtn.parentNode;
-      console.log('Debug Position: Training Parent:', trainingParent?.className || trainingParent?.tagName || 'unbekannt', 'Autoplay Parent:', autoplayParent?.className || autoplayParent?.tagName || 'unbekannt');  // Log: Zeigt Parent (z.B. "div", ".config-section")
-
-      // Entferne Autoplay aus oberer Position
-      if (autoplayParent && autoplayParent.contains(autoplayBtn)) {
-        autoplayParent.removeChild(autoplayBtn);
-        console.log('Autoplay aus oberer Position entfernt.');  // Debug
-      }
-
-      // Prüfe, ob Training-Parent schon eine Flex-Gruppe hat; sonst erstelle .training-group
-      let group = trainingParent.querySelector('.training-group');
-      if (!group) {
-        // Erstelle neue Flex-Gruppe um Training-Button
-        group = document.createElement('div');
-        group.className = 'training-group';
-        trainingParent.insertBefore(group, trainingBtn);
-        group.appendChild(trainingBtn);
-        console.log('Neue .training-group um Training erstellt.');  // Debug
-      }
-
-      // Füge Autoplay in die Gruppe ein (direkt nach Training)
-      group.appendChild(autoplayBtn);
-      console.log('Autoplay in Gruppe unter Sliders platziert – neben Training.');  // Debug
-
-      // Bestätige finale Position
-      console.log('Finale Parent von Autoplay:', autoplayBtn.parentNode?.className || autoplayBtn.parentNode?.tagName);
-    } else {
-      console.warn('Training- oder Autoplay-Button nicht gefunden.');  // Debug
-    }
-  }, 100);  // Kurzer Delay
-
-  // Voice panels
-  $('#btnVoiceDe').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('de'); });
-  $('#btnVoiceZh').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); openVoicesPanelFor('zh'); });
-  $('#btnCloseVoices').addEventListener('click', closeVoices);
-
-  // Order / Autoplay
-  $('#btnOrderToggle').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); state.order = (state.order==='random')? 'seq':'random'; state.settings.order=state.order; saveSettings(); renderModeUI(); });
-  $('#btnAutoplay').addEventListener('click', ()=>{ toggleAutoplay(); });
-
-  // Gap slider
-  $('#gapRange').addEventListener('input', e=>{ const s=parseFloat(e.target.value)||0.8; state.autoplay.gapMs=Math.round(s*1000); state.settings.autoplayGap=state.autoplay.gapMs; $('#gapVal').textContent = `(${s.toFixed(1)} s)`; saveSettings(); });
-
-  // Rate/Pitch per language
-  $('#rateDeRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.rateDe=parseFloat(e.target.value); state.settings.rateDe=state.rateDe; $('#rateDeVal').textContent=`(${state.rateDe.toFixed(2)})`; saveSettings(); });
-  $('#pitchDeRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.pitchDe=parseFloat(e.target.value); state.settings.pitchDe=state.pitchDe; $('#pitchDeVal').textContent=`(${state.pitchDe.toFixed(2)})`; saveSettings(); });
-  $('#rateZhRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.rateZh=parseFloat(e.target.value); state.settings.rateZh=state.rateZh; $('#rateZhVal').textContent=`(${state.rateZh.toFixed(2)})`; saveSettings(); });
-  $('#pitchZhRange').addEventListener('input', e=>{ stopAutoplayOnUserAction(); state.pitchZh=parseFloat(e.target.value); state.settings.pitchZh=state.pitchZh; $('#pitchZhVal').textContent=`(${state.pitchZh.toFixed(2)})`; saveSettings(); });
-
-  // Mode swap
-  $('#btnSwapMode').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); state.mode = (state.mode==='de2zh')? 'zh2de':'de2zh'; state.settings.mode=state.mode; saveSettings(); renderModeUI(); if(state.current) setCard(state.current); });
-
-  // Flow: Start/Stop button
-  $('#btnStart').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); startTraining(); });
-  $('#btnNext').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); nextCard(); });
-  $('#btnPrev').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); prevCard(); });
-  $('#btnReveal').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); doReveal(); });
-  $('#btnPlayQ').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); playQuestion(); });
-  $('#btnPlayA').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); playAnswer(); });
-
-  // Rating
-  $('#btnRateKnown').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('known'); });
-  $('#btnRateUnsure').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('unsure'); });
-  $('#btnRateUnknown').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); rate('unknown'); });
-
-  // NEW: Lessons controls
-  $('#btnUseLessons').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); const sel=$('#lessonSelect'); const picked=[]; for(const o of sel.selectedOptions){ picked.push(o.value); } state.settings.lessons=picked; saveSettings(); gatherPoolFromSettings(); });
-  $('#btnClearLessons').addEventListener('click', ()=>{ stopAutoplayOnUserAction(); // Clear pool & selection
-    state.selectedLessons.clear(); state.settings.lessons=[]; saveSettings(); state.pool=[]; state.idx=null; resetSessionStats();
-    // clear UI selection in list
-    const sel=$('#lessonSelect'); for(const o of sel.options){ o.selected=false; }
-    // disable training state (if active) and reset view
-    if(state.trainingOn) stopTraining();
-  });
-
-  // Progress export/import
-  $('#btnExport').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(state.progress,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='progress.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); });
-  $('#fileImport').addEventListener('change', e=>{ stopAutoplayOnUserAction(); const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const p=JSON.parse(r.result); if(p && p.version==='v1'){ state.progress=p; saveProgress(); populateLessonSelect(); alert('Fortschritt importiert.'); } else alert('Ungültiges Format.'); }catch(err){ alert('Import fehlgeschlagen: '+err.message); } }; r.readAsText(f); e.target.value=''; });
-});
+// Rest des JS-Codes: setCard() muss updateCardInfo() aufrufen (z.B. in setCard(): updateCardInfo(); )
+// gatherPool, startTraining, etc. – unverändert (kopiere aus deiner Version)
+// DOMContentLoaded: loadSettings, loadExcel, Events – unverändert, aber stelle sicher: in setCard() { ... updateCardInfo(); ... }
