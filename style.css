@@ -1,0 +1,298 @@
+/* r15.2.6 styles (Umschaltbtn größer, breiter,schriftgrößen angepasst, Abstände, Farbe) */
+:root{ --bg:#0b0d10; --card:#12161b; --muted:#8fa1b3; --text:#e6edf3; --accent:#7aa2f7; --border:#283344; --good:#7bd88f; --bad:#f7768e; --unsure:#ffbd6b; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif}
+.container{max-width:1100px;margin:24px auto;padding:0 12px}
+header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
+.subtitle{margin:0 0 8px 0;color:var(--muted);font-size:14px}
+.top-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px; margin-top:16px;} /* Etwas mehr Gap (10px) für bessere Gruppierung (Training + Autoplay) */
+/* NEU: Kinder der Row flexibel machen, um Wrap zu vermeiden (schrumpfen proportional) */
+.top-actions > * {
+  flex-shrink: 1; /* Ermöglicht Schrumpfen bei Text-Änderungen, statt Wrap */
+}
+.small-label{font-size:12px;margin-right:2px}
+.btn{background:#1b2330;color:var(--text);border:1px solid #293241;padding:8px 12px;border-radius:8px;cursor:pointer; flex-shrink: 1;} /* Global: Buttons schrumpfen leicht bei Bedarf */
+.btn.small{padding:6px 10px;font-size:12px}
+.btn.large{padding:10px 16px;font-size:14px;font-weight:600}
+.btn.primary{background:#7aa2f7;border-color:#7aa2f7;color:#081018;font-weight:700; margin-top:12px; flex: 0 1 auto; white-space: nowrap; transition: all 0.2s ease; max-width: none;} /* Training-Button: Kompakter, verhindert Text-Umbruch bei "Stop" – Übergang für Smoothness */
+.btn.ghost{background:transparent}
+
+/* FIX: Speziell für Training-Button – kompakte Breite (nicht 100% oder flex:1), unabhängig von Parent */
+#btnStart {
+  width: auto !important; /* FIX: Nur Inhaltsbreite (Text + Padding) */
+  flex: none !important; /* Kein Grow/Shrink über Inhalt */
+  display: inline-block !important; /* Inline, um in Row zu passen */
+  max-width: none !important; /* Entfernt Breitenbeschränkungen */
+  min-width: 120px; /* Minimale Breite für "Training stoppen ■" */
+}
+
+/* NEU: Gruppe für Training + Autoplay (unter Sliders) – Flex-Row für nebeneinander */
+.training-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center; /* Zentriert die Gruppe */
+  margin-top: 12px; /* Abstand zu Sliders oben */
+  flex-wrap: nowrap; /* NEU: Immer single-line auf Desktop (kein Wrap für die beiden Buttons) */
+}
+
+/* NEU: Autoplay als Primary (wenn Klasse hinzugefügt): Farblich identisch zum Training-Button */
+#btnAutoplay.primary {
+  background: #7aa2f7 !important;
+  border-color: #7aa2f7 !important;
+  color: #081018 !important;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease; /* Smooth bei Text-Wechsel (z.B. "Stop") */
+  flex: 0 1 auto; /* Kompakt, dynamisch */
+  width: auto !important; /* FIX: Gleiche kompakte Breite wie Training */
+  display: inline-block !important;
+  max-width: none !important;
+}
+
+/* Dynamisch breiterer Autoplay-Button (ca. 15% breiter als Standard, aber flexibel – passt sich an Nachbarn an) */
+#btnAutoplay {
+  min-width: 110px; /* Etwas schmaler (110px), damit + Training immer in einer Zeile passt (~230px Gesamt) */
+  padding: 8px 16px; /* Etwas mehr horizontaler Innenabstand, aber flexibel */
+  flex: 0 1 auto; /* Grow:0 (wächst nicht über Basis), Shrink:1 (schrumpft bei Engpass), Basis:auto (passt zu Inhalt) – verhindert Wrap */
+  white-space: nowrap; /* Verhindert Text-Umbruch (z.B. "Autoplay ▶︎" oder "Autoplay ■ Stop") */
+  font-weight: 600; /* Leicht bolder für Prominenz (wird zu 700 bei .primary) */
+}
+
+/* Breitere und höhere Swap/Direction-Button (mit "< Richtung >" als zentriertem Text, kein Icon) */
+.btn.swap {
+  font-weight: 600; /* Bold für den Text */
+  padding: 8px 10px; /* Höheres Padding (vertikal mehr für Zentrierung und Präsenz) */
+  font-size: 16px; /* Geändert: Größere Schrift für den gesamten Text ("< Richtung >") */
+  border-radius: 8px; /* Etwas abgerundeter für modernen Look */
+  min-width: 100px; /* Minimale Breite, damit er sich ausdehnt */
+  min-height: 28px; /* Höher für bessere Sichtbarkeit und Berührbarkeit */
+  flex: 1 1 auto; /* Teilt Platz mit den Nachbarn */
+  display: flex; /* Flexbox für perfekte Zentrierung */
+  align-items: center; /* Vertikal zentriert */
+  justify-content: center; /* Horizontal zentriert */
+  text-align: center; /* Text zentriert (Fallback) */
+  line-height: 1.2; /* Etwas mehr Zeilenhöhe für den Text */
+  white-space: nowrap; /* Verhindert Umbruch des Texts */
+}
+
+.card{background:var(--card);border:1px solid #1e2530;border-radius:12px;padding:14px 14px 10px;margin-bottom:14px}
+.lbl{display:block;margin-bottom:6px;color:var(--muted)}
+
+.hint{color:var(--muted);font-size:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane{border:1px solid var(--border);border-radius:10px;padding:12px}
+.select, .input{width:100%;background:#0f141b;border:1px solid #293241;color:var(--text);border-radius:8px;padding:10px;min-height:42px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.stack{display:flex;flex-direction:column;gap:8px}
+.prompt-box{border:1px dashed #303b49;border-radius:12px;padding:12px}
+.prompt{font-size:20px}
+.prompt.big{font-size:20px;font-weight:800}
+.prompt.sub{color:#c9d3df;margin-bottom:6px}
+.prompt.small{font-size:16px}
+.solution{margin-top:12px}
+.sol{position:relative;border:1px solid var(--border);border-radius:12px;padding:12px}
+.sol .sol-part{margin-bottom:10px}
+.sol .sol-text{font-size:20px;white-space:pre-wrap}
+.sol.masked .sol-text{filter:blur(10px); opacity:0.05; user-select:none}
+.card-controls{display:flex;gap:12px;justify-content:center;margin-top:10px}
+.card-controls.second{margin-top:6px}
+.stats-bar{margin-top:8px;color:#a7b5c5;font-size:13px;text-align:center}
+
+.debug{position:fixed;inset:5% 5% auto 5%;background:#0f141b;border:1px solid #2b3646;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:1000;display:flex;flex-direction:column}
+.debug.hidden{display:none}
+.debug-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2b3646;padding:8px 10px}
+.debug-head .title{font-weight:800}
+.debug-body{padding:10px;overflow:auto;max-height:70vh}
+.debug-section{margin-bottom:12px}
+.debug-section .h{font-weight:700;margin-bottom:6px;color:#cbd6e3}
+#dbgVoices .voice{display:flex;gap:10px;align-items:center;border:1px solid #2b3646;border-radius:8px;padding:6px;margin-bottom:6px}
+#dbgVoices .voice .meta{font-size:12px;color:#b6c2d0}
+#dbgVoices .voice .name{font-weight:700}
+
+.mode-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Mehr Gap für Balance mit höherem Button */
+.actions-inline{display:flex;gap:14px;align-items:center;flex-wrap:wrap; justify-content: center;} /* Gleiches für actions-inline */
+/* NEU: Gleiche Höhe wie Swap-Button für die Sprache-Items (links/rechts) – höheres Padding und min-height */
+.mode-item{background:#0f141b;border:1px solid #293241;border-radius:8px;padding:12px 16px; /* NEU: Höheres Padding (12px vertikal), passt zu Swap (12px) */ font-weight:700; min-width:80px; min-height:28px; /* NEU: Gleiche min-height wie Swap (40px) für Balance */ flex:1 1 auto; display: flex; align-items: center; justify-content: center; text-align: center;} /* Zentrierung der Beschriftungen (z.B. "DE"/"ZH") – horizontal/vertikal perfekt */
+.btn.swap{font-weight:600;padding:8px 10px}
+.gap-row input[type=range]{width:100%}
+
+.two-col{display:flex; flex-wrap:wrap; gap:10px}
+.two-col > *{flex:1 1 calc(50% - 10px); max-width:calc(50% - 10px)}
+.voice-btn{width:100%}
+.voice-config{display:flex;flex-direction:column;gap:6px}
+.voice-range{width:100%}
+
+.ratebar{display:flex;gap:8px;justify-content:center;align-items:stretch;flex-wrap:nowrap;margin:10px 0 6px}
+.ratebar .btn{flex:0 0 calc((100% - 16px)/3); max-width:calc((100% - 16px)/3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:16px 12px}
+@media(max-width:480px){ .ratebar .btn{padding:12px 10px; font-size:12px} }
+
+@media(max-width:460px){ header h1{font-size:20px} .subtitle{font-size:12px} }
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+/* NEUE REGELN: Anpassung der Schriftgröße für ZH Tempo (Rate) und ZH Tonhöhe (Pitch) */
+#rateZhRange, #pitchZhRange {
+  font-size: 16px; /* Größere Schrift für die Slider selbst (falls sie Labels haben) */
+}
+
+/* NEUE REGELN: Abstände anpassen für ZH-Sektion (und DE, falls ähnlich) */
+.voice-config {
+  gap: 10px; /* Erhöhtes Gap: Mehr Abstand zwischen allen Elementen (inkl. Button oben und Sliders) */
+}
+
+/* Speziell: Größerer Abstand direkt nach den Voice-Buttons (DE/ZH Stimme wählen) */
+.voice-btn + .voice-config,
+#btnVoiceDe + .voice-config,
+#btnVoiceZh + .voice-config {
+  margin-top: 8px; /* Zusätzlicher Abstand nach dem Button */
+}
+
+.voice-config > *:first-child { /* Erstes Element in der Config (z.B. Label "ZH Tempo") */
+  margin-top: 12px; /* Mehr Abstand zum Button darüber – das macht den Unterschied */
+}
+
+/* Kleinerer Abstand der Labels zu den Sliders (ZH und DE) */
+.voice-config .lbl { /* Überschreibt den globalen .lbl-Margin */
+  margin-bottom: 2px; /* Stark reduziert: Labels sehr nah an den Sliders darunter */
+  text-align: left; /* Andere Labels (z.B. in Voice-Config) bleiben linksbündig */
+}
+
+#rateZhVal, #pitchZhVal { /* Werte-Anzeigen nah am Slider */
+  margin-bottom: 0; /* Kein Abstand mehr – direkt über dem Slider */
+}
+
+#rateZhRange, #pitchZhRange,
+#rateDeRange, #pitchDeRange { /* Sliders selbst: Etwas Padding oben, um nahtlos zu wirken */
+  margin-top: 0;
+  padding-top: 2px; /* Minimaler Puffer, falls nötig */
+}
+
+/* NEUE REGEL: Desktop-Hintergrundfarbe ändern (nur ab 1024px Breite, Mobile bleibt schwarz) */
+@media (min-width: 1024px) {
+  :root {
+    --bg: #1a1a2e; /* Beispiel: Dunkles Blau-Grau für Desktop. Ändere das zu deiner gewünschten Farbe, z.B. #2d3748 für Grau */
+  }
+  
+  html, body {
+    background: var(--bg); /* Wendet die neue Variable an */
+  }
+}
+
+/* KONSISTENZ-REGELN: Einheitliche Schriftgröße (14px) für Labels und Buttons in Voice- und Gap-Bereichen */
+.voice-btn { /* Buttons: "DE Stimme", "ZH Stimme" */
+  font-size: 14px; /* Einheitlich: Passt zu Labels */
+  font-weight: 500; /* Optional: Etwas fett für Buttons */
+}
+
+.voice-config .lbl { /* Labels: "ZH Tempo", "ZH Tonhöhe", "DE Tempo" etc. */
+  font-size: 14px; /* Einheitlich */
+  color: var(--muted); /* Hellgrau, wie gewünscht */
+}
+
+.gap-row .lbl { /* Label: "Pausenzeit zwischen Karten" */
+  font-size: 14px; /* Einheitlich */
+  color: var(--muted);
+}
+
+/* Anzeigewerte auf 12px (kleiner als Labels/Buttons für Dezenz) */
+#rateZhVal, #pitchZhVal,
+#rateDeVal, #pitchDeVal { /* Anzeigewerte: "(0.95)", "(1.0)" etc. für DE/ZH */
+  font-size: 12px; /* Kleiner für bessere Hierarchie */
+  font-weight: 500;
+}
+
+#gapVal { /* Anzeigewert: "(0.8 s)" für Pausenzeit */
+  font-size: 12px; /* Gleich wie andere Anzeigewerte */
+  font-weight: 500;
+}
+
+/* Optional: Falls die gesamte Voice-Config-Sektion (DE/ZH) einheitlich sein soll */
+.voice-config .two-col > *,
+#voiceZhConfig > *,
+#voiceDeConfig > * { /* Alle Kinder in Voice-Panels – Labels bleiben 14px, Werte 12px */
+  font-size: 14px; /* Globale Einheitlichkeit für Nicht-Werte-Elemente */
+}
+
+/* Responsive Anpassung: Auf Mobile etwas kleiner für alle genannten Elemente */
+@media (max-width: 480px) {
+  /* Kleinerer Abstand für "Training starten" auf Mobile */
+  .top-actions {
+    margin-top: 12px; /* Reduziert, um Platz zu sparen */
+    gap: 6px; /* Kleinerer Gap auf Mobile, für mehr horizontale Flexibilität (vermeidet Wrap) */
+  }
+  
+  /* FIX: Auf Mobile: Training kompakt */
+  #btnStart {
+    min-width: 100px; /* Kleiner min-width auf Mobile */
+  }
+  
+  /* NEU: Gruppe auf Mobile: Stack vertikal */
+  .training-group {
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap; /* Auf Mobile: Erlaubt Wrap/Stack */
+    flex-direction: row; /* Bleibt horizontal, wrapt bei Bedarf */
+  }
+  
+  .btn.primary {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+    flex: 0 1 auto; /* Bleibt kompakt auf Mobile */
+  }
+  
+  /* Responsive für Swap-Button mit Text auf Mobile (kompakter) */
+  .btn.swap {
+    padding: 8px 10px; /* Etwas kompakter Padding */
+    min-height: 28px; /* Reduziert für Mobile */
+    font-size: 16px; /* Kleinerer Text auf Mobile */
+  }
+  
+  /* NEU: Schmalerer Autoplay-Button auf Mobile (flexibel, passt sich an) */
+  #btnAutoplay {
+    min-width: 100px; /* Noch schmaler auf Mobile (100px), um in enger Row zu passen */
+    padding: 8px 14px; /* Weniger Padding für enge Screens */
+    flex: 0 1 auto; /* Bleibt flexibel – schrumpft bei Bedarf */
+  }
+  
+  /* NEU: Sprache-Items auf Mobile: Kompakter (passt zu Swap-Reduktion) */
+  .mode-item {
+    padding: 10px 12px; /* Reduziertes Padding (10px vertikal), min-height:50px */
+    min-height: 28px; /* Gleiche Höhe wie Swap auf Mobile (50px) */
+    min-width: 70px; /* Reduziert, um in enger Row zu passen */
+    font-size: 13px; /* Etwas kleinere Schrift für Balance */
+    display: flex; /* Bleibt flex für Zentrierung */
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* Zentrierung bleibt auf Mobile */
+  }
+  
+  /* Responsive für Language/Swap-Row auf Mobile */
+  .mode-inline,
+  .actions-inline {
+    gap: 10px; /* Kleinerer Gap auf Mobile */
+    justify-content: center; /* Center für Ausrichtung */
+  }
+  
+  .voice-btn,
+  .voice-config .lbl,
+  .gap-row .lbl {
+    font-size: 13px; /* Labels/Buttons etwas kleiner auf Mobile */
+  }
+  
+  /* Anzeigewerte auf Mobile: 11px */
+  #rateZhVal, #pitchZhVal, #rateDeVal, #pitchDeVal,
+  #gapVal {
+    font-size: 11px; /* Passt zur Skalierung */
+  }
+  
+  .voice-config {
+    gap: 6px; /* Auf Mobile Gap etwas reduzieren, um Platz zu sparen */
+  }
+  
+  .voice-config > *:first-child {
+    margin-top: 8px; /* Kleinerer Top-Margin auf Mobile */
+  }
+  
+  .voice-config .lbl {
+    margin-bottom: 3px; /* Etwas mehr Abstand auf kleinen Screens */
+  }
+}
