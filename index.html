@@ -1,149 +1,101 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chinesisch Flashcards – v5.5 (Browser optimiert)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HSK Flashcard-App</title>
+  
+  <!-- Leeres Favicon – kein 404-Fehler -->
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  
+  <!-- XLSX-Lib lokal (heruntergeladen) – kein CDN-Block -->
+  <script src="./xlsx.full.min.js"></script>
+  
+  <!-- CSS: Flip, Positionierung, Styles -->
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .section { margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; background: white; border-radius: 8px; }
+    label { display: block; margin: 5px 0; font-weight: bold; }
+    input[type="radio"], input[type="checkbox"] { margin-right: 5px; }
+    button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; }
+    #card { perspective: 1000px; height: 200px; margin: 20px 0; }
+    .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+    .card-side { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #ddd; border-radius: 8px; padding: 20px; box-sizing: border-box; }
+    .card-side.back { transform: rotateY(180deg); }
+    #promptWord, #solutionWord { font-size: 24px; text-align: center; }
+    .card-info { font-size: 14px; color: #666; margin-bottom: 10px; }
+    .emphasis { font-weight: bold; color: #007bff; }
+    .controls { display: flex; justify-content: space-around; flex-wrap: wrap; }
+    #lblKarte { /* Platz für ID-Label – dynamisch */ position: relative; top: 0; left: 0; }
+    /* Autoplay/Voice-Position: Rechts oben */
+    #voiceSection { float: right; margin-left: auto; }
+  </style>
 </head>
 <body>
-  <main class="container">
-    <header>
-      <h1>Flashcards <span class="muted">Deutsch ↔ 中文</span></h1>
-      <p class="subtitle">Lektion, Richtung und Reihenfolge wählen · Karte lernen</p>
-      <div class="top-actions">
-        <span class="muted small-label">Fortschritt:</span>
-        <label class="import-btn btn ghost small">Importieren<input id="fileImport" type="file" accept="application/json" hidden></label>
-        <button id="btnExport" class="btn ghost small">Exportieren</button>
-      </div>
-    </header>
-
-    <section class="card cfg">
-      <div class="grid-2">
-        <div class="pane">
-          <div class="lbl">Lektion(en)</div>
-          <select id="lessonSelect" class="select" multiple size="10"></select>
-          <div class="controls mt8">
-            <button id="btnUseLessons" class="btn">Übernehmen</button>
-            <button id="btnClearLessons" class="btn ghost">Leeren</button>
-          </div>
-        </div>
-
-        <div class="pane">
-          <div class="lbl">Richtung</div>
-          <div class="mode-inline">
-            <div class="mode-item" id="modeLeft">🇩🇪 DE</div>
-            <button id="btnSwapMode" class="btn ghost swap" title="Richtung umschalten">⇄</button>
-            <div class="mode-item" id="modeRight">🇨🇳 ZH</div>
-          </div>
-
-          <div class="actions-inline mt8">
-            <button id="btnOrderToggle" class="btn ghost">Reihenfolge: Zufällig</button>
-            <button id="btnAutoplay" class="btn ghost">Autoplay ▶︎</button>
-          </div>
-
-          <div class="mt8 gap-row">
-            <label class="lbl">Pausen‑Zeit zwischen Karten: <span id="gapVal" class="hint">(0.8 s)</span></label>
-            <input id="gapRange" type="range" min="0.6" max="2.5" step="0.1" value="0.8" />
-          </div>
-
-          <div class="two-col mt12">
-            <button id="btnVoiceDe" class="btn large fit voice-btn">DE Stimme</button>
-            <button id="btnVoiceZh" class="btn large fit voice-btn">ZH Stimme</button>
-          </div>
-          <div class="two-col mt8 voice-grids">
-            <div class="voice-config">
-              <label class="lbl">DE Tempo <span id="rateDeVal" class="hint">(0.95)</span></label>
-              <input id="rateDeRange" class="voice-range" type="range" min="0.6" max="1.6" step="0.05" value="0.95" />
-              <label class="lbl">DE Tonhöhe <span id="pitchDeVal" class="hint">(1.00)</span></label>
-              <input id="pitchDeRange" class="voice-range" type="range" min="0.7" max="1.5" step="0.05" value="1.00" />
-            </div>
-            <div class="voice-config">
-              <label class="lbl">ZH Tempo <span id="rateZhVal" class="hint">(0.95)</span></label>
-              <input id="rateZhRange" class="voice-range" type="range" min="0.6" max="1.6" step="0.05" value="0.95" />
-              <label class="lbl">ZH Tonhöhe <span id="pitchZhVal" class="hint">(1.00)</span></label>
-              <input id="pitchZhRange" class="voice-range" type="range" min="0.7" max="1.5" step="0.05" value="1.00" />
-            </div>
-          </div>
-
-          <div class="stack mt12">
-            <button id="btnStart" class="btn primary">Training starten ▶</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card learn" id="learnSection">
-      <div class="section-title">Karte</div>
-
-      <div id="promptBox" class="prompt-box">
-        <div class="prompt-row">
-          <div class="prompt-col">
-            <div id="promptWord" class="prompt big">—</div>
-            <div id="promptWordSub" class="prompt sub small">&nbsp;</div>
-          </div>
-        </div>
-        <div class="prompt-row">
-          <div class="prompt-col">
-            <div id="promptSent" class="prompt">—</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="solution">
-        <div id="solBox" class="sol masked">
-          <div class="sol-part">
-            <div id="solWord" class="sol-text">—</div>
-          </div>
-          <div class="sol-part">
-            <div id="solSent" class="sol-text">—</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-controls">
-        <button id="btnPrev" class="btn" disabled>◀ Zurück</button>
-        <button id="btnReveal" class="btn ghost" disabled>Jetzt aufdecken 👁️</button>
-        <button id="btnNext" class="btn" disabled>Nächste Karte ▶</button>
-      </div>
-
-      <div class="ratebar" id="rateBar">
-        <button id="btnRateKnown"  class="btn rate good"   disabled>✅ Gewusst</button>
-        <button id="btnRateUnsure" class="btn rate unsure" disabled>🤔 Unsicher</button>
-        <button id="btnRateUnknown"class="btn rate bad"    disabled>❌ Nicht gewusst</button>
-      </div>
-
-      <div class="card-controls second">
-        <button id="btnPlayQ" class="btn ghost" disabled>🔊 Frage abspielen</button>
-        <button id="btnPlayA" class="btn ghost" disabled>🔊 Antwort abspielen</button>
-      </div>
-
-      <div id="sessionStats" class="stats-bar">—</div>
-
-    </section>
-  </main>
-
-  <div id="voicePanel" class="debug hidden">
-    <div class="debug-head">
-      <div class="title">Stimmen</div>
-      <button id="btnCloseVoices" class="btn ghost">✕</button>
+  <h1>HSK Flashcard-Training</h1>
+  
+  <!-- Settings-Section -->
+  <div class="section">
+    <h2>Einstellungen</h2>
+    <label>Modus:</label>
+    <input type="radio" name="mode" value="word" id="modeWord" checked> <label for="modeWord">Wort</label>
+    <input type="radio" name="mode" value="sent" id="modeSent"> <label for="modeSent">Satz</label><br>
+    
+    <label>Reihenfolge:</label>
+    <input type="radio" name="order" value="random" id="orderRandom" checked> <label for="orderRandom">Random</label>
+    <input type="radio" name="order" value="seq" id="orderSeq"> <label for="orderSeq">Sequentiell</label><br>
+    
+    <!-- Voice/Autoplay-Toggle: Neu positioniert rechts -->
+    <div id="voiceSection">
+      <label>Voice (Autoplay bei Karte):</label>
+      <input type="checkbox" id="voiceToggle" checked> Aktiv
     </div>
-    <div class="debug-body">
-      <div class="debug-section">
-        <div class="h">Hinweis</div>
-        <p>Wähle eine Stimme für die aktuell geöffnete Sprache.</p>
-      </div>
-      <div class="debug-section">
-        <div class="h">Stimmenliste</div>
-        <div id="dbgVoices"></div>
+  </div>
+  
+  <!-- Lektion-Section -->
+  <div class="section">
+    <h2>Lektion wählen</h2>
+    <select id="lessonSelect">
+      <option value="">Laden...</option>  <!-- Wird per JS gefüllt -->
+    </select>
+    <button id="loadBtn">Übernehmen</button>  <!-- Baut Pool -->
+  </div>
+  
+  <!-- Training-Controls (versteckt bis Start) -->
+  <div class="section" id="trainingControls" style="display: none;">
+    <h2>Training</h2>
+    <button id="startBtn">Training starten</button>
+    <div class="controls">
+      <button id="flipBtn">Flip</button>
+      <button id="learnBtn">Gelernt (Next)</button>
+      <button id="moreBtn">Mehr üben</button>
+      <button id="stopBtn">Stop</button>
+    </div>
+    <button id="nextBtn" style="display: none;">Nächste (Learned)</button>  <!-- Alternative Next -->
+  </div>
+  
+  <!-- Karte-Section -->
+  <div class="section">
+    <h2>Karte</h2>
+    <div id="lblKarte" class="card-info">Karte: —</div>  <!-- Dynamisch: ID + (1/18) -->
+    <div id="card">
+      <div class="card-inner">
+        <!-- Vorderseite: Prompt (PY) -->
+        <div class="card-side front">
+          <div id="promptWord">Lade Karte...</div>
+        </div>
+        <!-- Rückseite: Solution (ZH + POS) -->
+        <div class="card-side back">
+          <div id="solutionWord">Lade Lösung...</div>
+        </div>
       </div>
     </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="assets/js/app.js"></script>
+  
+  <!-- JS laden (dein app.js mit Parse-Fix) -->
+  <script src="./app.js"></script>
 </body>
 </html>
