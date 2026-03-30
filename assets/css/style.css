@@ -724,7 +724,7 @@ html.light .lesson-table::-webkit-scrollbar-thumb {
 /* ✅ Größeres Umschalt-Symbol (⇄)          */
 /* ======================================== */
 #btnSwapMode {
-    font-size: 26px !important;     /* größer */
+    font-size: 24px !important;     /* größer */
     font-weight: 700 !important;    /* kräftiger */
     line-height: 1 !important;
     padding: 6px 14px !important;
