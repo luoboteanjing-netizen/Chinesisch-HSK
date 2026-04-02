@@ -18,11 +18,41 @@ const APP_VERSION = "1.0.3";   // beim nächsten Release erhöhen
 const params = new URLSearchParams(location.search);
 const csvParam = params.get("csv");
 
-// Falls ?csv=xyz.csv gesetzt ist → diese Datei laden
-// Sonst → Standarddatei verwenden
-const CSV_URL = csvParam 
-    ? `./data/${csvParam}`
-    : "./data/HSK-Chinesisch_Lektionen.csv";
+// 🔥 CSV wird jetzt dynamisch zur Laufzeit bestimmt
+let CSV_URL = null;
+
+/* ===========================
+   CSV RESOLVER (mit Fallback)
+   =========================== */
+async function resolveCSV() {
+
+    // 1. URL-Parameter hat Priorität
+    if (csvParam) {
+        const file = `./data/${csvParam}`;
+        try {
+            const res = await fetch(file, { method: "HEAD" });
+            if (res.ok) return file;
+
+            console.warn("CSV aus URL nicht gefunden → Fallback wird verwendet");
+        } catch (e) {}
+    }
+
+    // 2. Fallback-Reihenfolge
+    const candidates = [
+        "./data/HSK-Chinesisch_Lektionen.csv",
+        "./data/Long-Chinesisch_Lektionen.csv"
+    ];
+
+    for (const file of candidates) {
+        try {
+            const res = await fetch(file, { method: "HEAD" });
+            if (res.ok) return file;
+        } catch (e) {}
+    }
+
+    // 3. Harte Fehlerbehandlung
+    throw new Error("Keine CSV-Datei gefunden");
+}
 
 const LS_KEYS = {
     settings: "fc_settings_v1",
@@ -162,6 +192,7 @@ function parseCSVLine(line) {
 
 async function loadCSV() {
     try {
+		 CSV_URL = await resolveCSV();
         const res = await fetch(CSV_URL);
         const buf = await res.arrayBuffer();
         const text = new TextDecoder("utf-8").decode(buf);
@@ -237,7 +268,7 @@ const header = `
         <span class="lt-lesson" data-sort="lesson">Lektion</span>
         <span class="lt-total" data-sort="total">Karten</span>
         <span class="lt-strong"  data-sort="strong">✅</span>    <!-- Box 4+5 -->
-        <span class="lt-weak"    data-sort="weak">⚠️</span>      <!-- Box 2+3 -->
+        <span class="lt-weak"    data-sort="weak">🤔</span>      <!-- Box 2+3 -->
 		<span class="lt-unknown" data-sort="unknown">❌</span>   <!-- Box 1 -->
 	</div>
 `;
