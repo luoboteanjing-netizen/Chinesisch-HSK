@@ -467,6 +467,12 @@ function formatZh(hz, py) {
         : hz || "—";
 }
 
+function getLeitnerAscii(box) {
+    // Box 0–5 → 0–5 gefüllte Kästchen
+    const filled = Math.max(0, Math.min(box, 5));
+    return "■".repeat(filled) + "□".repeat(5 - filled);
+}
+
 /* ========================================================================== */
 /*                                ENDE TEIL 1                                 */
 /* ========================================================================== */
@@ -522,8 +528,14 @@ function setCard(entry, fromHistory = false) {
     const cardTitle  = document.querySelector("#cardTitle");
     const cardLesson = document.querySelector("#cardLesson");
 
-    if (cardTitle)  cardTitle.textContent  = `Karte (ID ${entry.id})`;
-    if (cardLesson) cardLesson.textContent = `Lektion ${entry.lesson}`;
+  
+	if (cardTitle) {
+		const p = ensureCardProgress(entry);
+		const ascii = getLeitnerAscii(p.box);
+		cardTitle.innerHTML = `<span class="leitner-ascii">${ascii}</span>`;
+	}
+
+    if (cardLesson) cardLesson.textContent = `Lektion ${entry.id}`;
 
 // ----------------------------------------------------------
 // Fortschrittsbalken (Leitner) – von links nach rechts:
@@ -755,13 +767,13 @@ function hideRatingButtons() {
 
 function enableRating() {
     $("#btnRateKnown").disabled = false;
-    $("#btnRateUnsure").disabled = false;
+  
     $("#btnRateUnknown").disabled = false;
 }
 
 function disableRating() {
     $("#btnRateKnown").disabled = true;
-    $("#btnRateUnsure").disabled = true;
+ 
     $("#btnRateUnknown").disabled = true;
 }
 
@@ -1726,11 +1738,6 @@ if (overlay) {
     $("#btnRateKnown").addEventListener("click", () => {
         stopAutoplayOnUserAction();
         rate("known");
-    });
-
-    $("#btnRateUnsure").addEventListener("click", () => {
-        stopAutoplayOnUserAction();
-        rate("unsure");
     });
 
     $("#btnRateUnknown").addEventListener("click", () => {
