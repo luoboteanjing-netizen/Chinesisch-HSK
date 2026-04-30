@@ -44,8 +44,8 @@ async function resolveCSV() {
 
     // 2. Fallback-Reihenfolge
     const candidates = [
-    //    "./data/HSK-Chinesisch_Lektionen.csv",
-        "./data/Long-Chinesisch_Lektionen.csv"
+        "./data/HSK-Chinesisch_Lektionen.csv",
+     //    "./data/Long-Chinesisch_Lektionen.csv"
     ];
 
     for (const file of candidates) {
