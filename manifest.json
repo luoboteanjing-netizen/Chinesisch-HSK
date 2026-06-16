@@ -1,10 +1,10 @@
 {
   "name": "Flashcards Chinesisch",
-  "short_name": "CiLong HSK",
+  "short_name": "CiLong",
   "description": "Chinesisch Flashcards mit Leitner-System und TTS",
   "start_url": "./index.html",
-  "scope": "/Chinesisch-HSK/",
-  "id": "/Chinesisch-HSK/",
+  "scope": "/Flashcards-Chinesisch/",
+  "id": "/Flashcards-Chinesisch/",
   "display": "standalone",
   "orientation": "portrait",
   "icons": [
