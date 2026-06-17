@@ -15,7 +15,7 @@
 if (window.APP_VERSION) {
   console.warn("app.js bereits geladen – Abbruch");
 } else {
-  window.APP_VERSION = "6.3.5";
+  window.APP_VERSION = "6.3.7";
 }
 
 
@@ -124,8 +124,8 @@ const TRANSLATIONS = {
         searchEmptyResults: "Keine Treffer gefunden.",
         noVoicesFound: "Keine passenden Stimmen gefunden.",
         namelessVoice: "(namenlos)",
-        pickVoice: "Diese Stimme wählen",
-        testVoice: "Probehören",
+        pickVoice: "✓ Übernehmen",
+        testVoice: "▶ Probehören",
         voiceActiveSuffix: "• [Aktiv]",
         selectLessonAlert: "Bitte zuerst Lektionen auswählen.",
         selectLessonAlert2: "Bitte Lektionen wählen.",
@@ -2543,24 +2543,26 @@ function updateVoiceList() {
         const btnPick = document.createElement("button");
         btnPick.className = "btn";
         btnPick.textContent = translate("pickVoice");
-        btnPick.onclick = () => {
-            if (state.voicePanelTarget === "zh") {
-                state.browserVoice.zh = v;
-                state.settings.browserVoiceZh = v.name || v.voiceURI;
-            } else {
-                state.browserVoice.de = v;
-                state.settings.browserVoiceDe = v.name || v.voiceURI;
-            }
-            saveSettings();
-            closeVoices();
-        };
+		btnPick.onclick = () => {
+			if (state.voicePanelTarget === "zh") {
+				state.browserVoice.zh = v;
+				state.settings.browserVoiceZh = v.name || v.voiceURI;
+				state.settings.githubVoiceZh = null;   // ← NEU: MP3-Stimme deaktivieren
+			} else {
+				state.browserVoice.de = v;
+				state.settings.browserVoiceDe = v.name || v.voiceURI;
+				state.settings.githubVoiceDe = null;   // ← NEU: MP3-Stimme deaktivieren
+			}
+			saveSettings();
+			closeVoices();
+		};
 
         const btnTest = document.createElement("button");
         btnTest.className = "btn ghost";
         btnTest.textContent = translate("testVoice");
         btnTest.onclick = () => {
             const u = new SpeechSynthesisUtterance(
-                state.voicePanelTarget === "zh" ? "这是一个测试。" : "Dies ist ein Test."
+                state.voicePanelTarget === "zh" ? "我很高兴见到你。" : "Es freut mich sehr dich zu sehen."
             );
             u.lang = state.voicePanelTarget === "zh" ? "zh-CN" : "de-DE";
             u.voice = v;
@@ -2572,9 +2574,8 @@ function updateVoiceList() {
         if (active && (active.name === v.name || active.voiceURI === v.voiceURI)) {
             name.textContent += ` ${translate("voiceActiveSuffix")}`;
         }
-
-        actions.appendChild(btnPick);
         actions.appendChild(btnTest);
+        actions.appendChild(btnPick);
         row.appendChild(name);
         row.appendChild(meta);
         row.appendChild(actions);
