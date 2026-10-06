@@ -15,7 +15,7 @@
 if (window.APP_VERSION) {
   console.warn("app.js bereits geladen – Abbruch");
 } else {
-  window.APP_VERSION = "6.4.1";
+  window.APP_VERSION = "6.4.3";
 }
 
 
@@ -90,7 +90,7 @@ const TRANSLATIONS = {
         modeSwitchTitle: "Richtung umschalten",
         orderRandom: "Zufällig",
 		browseStart: "Lernen︎",
-		browseStop: "lernen",
+		browseStop: "Lernen",
         autoPlay: "Autoplay︎",
         autoPlayStop: "Autoplay",
         trainingStart: "Training︎",
@@ -165,10 +165,12 @@ const TRANSLATIONS = {
         settingsVersion: "Version:",
         modeSwitchTitle: "Switch direction",
         orderRandom: "Random",
-        autoPlay: "Start Autoplay ▶︎",
-        autoPlayStop: "Stop Autoplay ■",
-        trainingStart: "Start Training ▶",
-        trainingStop: "Stop Training ■",
+		browseStart: "Browse Cards",
+		browseStop: "Browse Cards",
+        autoPlay: "Autoplay︎",
+        autoPlayStop: "Autoplay",
+        trainingStart: "practice",
+        trainingStop: "practice",
         prev: "◀ Back",
         reveal: "Show answer",
         next: "Next ▶",
@@ -213,9 +215,7 @@ const TRANSLATIONS = {
         alertImportError: "Import failed.",
         csvLoadError: "Error loading CSV.",
         cardLessonTitle: "Lesson {id}",
-		browseStart: "📖 Browse Cards",
-		browseStop: "📖 Stop Browse",
-
+		
     },
     zh: {
         appTitle: "中文抽认卡",
@@ -241,10 +241,12 @@ const TRANSLATIONS = {
         settingsVersion: "版本：",
         modeSwitchTitle: "切换方向",
         orderRandom: "随机",
-        autoPlay: "自动播放 ▶︎",
-        autoPlayStop: "停止自动播放 ■",
-        trainingStart: "开始学习 ▶",
-        trainingStop: "停止学习 ■",
+		browseStart: "浏览卡片",
+		browseStop: "结束浏览",
+        autoPlay: "自动播放",
+        autoPlayStop: "自动播放",
+        trainingStart: "开始学习",
+        trainingStop: "开始学习",
         prev: "◀ 上一张",
         reveal: "显示答案",
         next: "下一张 ▶",
@@ -289,8 +291,6 @@ const TRANSLATIONS = {
         alertImportError: "导入失败。",
         csvLoadError: "加载 CSV 时出错。",
         cardLessonTitle: "课程 {id}",
-		browseStart: "📖 浏览卡片",
-		browseStop: "📖 结束浏览",
 		
     },
     fr: {
@@ -317,10 +317,12 @@ const TRANSLATIONS = {
         settingsVersion: "Version :",
         modeSwitchTitle: "Changer de direction",
         orderRandom: "Aléatoire",
-        autoPlay: "lecture auto ▶︎",
-        autoPlayStop: "arrêt lecture auto ■",
-        trainingStart: "démarrer ▶",
-        trainingStop: "arrêter ■",
+		browseStart: "apprendre",
+		browseStop: "apprendre",
+        autoPlay: "lecture auto︎",
+        autoPlayStop: "lecture auto",
+        trainingStart: "exercices",
+        trainingStop: "exercices",
         prev: "◀ Précédent",
         reveal: "Afficher la réponse",
         next: "Suivant ▶",
@@ -365,9 +367,7 @@ const TRANSLATIONS = {
         alertImportError: "Échec de l'importation.",
         csvLoadError: "Erreur lors du chargement du CSV.",
         cardLessonTitle: "Leçon {id}",
-		browseStart: "📖 Parcourir",
-		browseStop: "📖 Arrêter",
-
+		
     }
 };
 const $ = (s) => document.querySelector(s);
@@ -736,6 +736,7 @@ function translateAllUI() {
 
     updateTrainingBtn();
     updateAutoplayBtn();
+    updateBrowseBtn();
 }
 
 function updateSearchPlaceholder() {
@@ -1439,10 +1440,16 @@ function setCard(entry, fromHistory = false) {
 	
 	if (state.browseMode) {
 
+    // Cancel the delayed sentence timer – browse shows everything immediately
+    if (state.delayedSentenceTimer) {
+        clearTimeout(state.delayedSentenceTimer);
+        state.delayedSentenceTimer = null;
+    }
+
     if (state.mode === "zh2de") {
 
-        renderPromptWordFull(entry);
-        renderPromptSentenceFull(entry);
+        renderPromptWord(entry);       // respects showHanzi/showPinyin
+        renderPromptSentence(entry);   // respects showHanzi/showPinyin
 
     } else {
 
@@ -1912,6 +1919,11 @@ function updateTrainingBtn() {
         state.trainingOn ? translate("trainingStop") : translate("trainingStart");
 }
 
+function updateBrowseBtn() {
+    $("#btnBrowse").textContent =
+        state.browseMode ? translate("browseStop") : translate("browseStart");
+}
+
 function updateModeButtons() {
 
     $("#btnStart").classList.remove("active-mode");
@@ -1929,6 +1941,8 @@ function updateModeButtons() {
     if (state.autoplay.on) {
         $("#btnAutoplay").classList.add("active-mode");
     }
+
+    updateBrowseBtn();
 }
 
 /* ========================================================================== */
