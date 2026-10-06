@@ -860,6 +860,41 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     gap: 4px;
 }
 
+/* Perfektes Grid für 5 Spalten */
+.lt-row {
+    display: grid;
+    grid-template-columns:
+        var(--lt-c1, 115px)
+        var(--lt-c2, 25px)
+        var(--lt-c3, 25px)
+        var(--lt-c4, 30px)
+        var(--lt-c5, 30px);
+
+    gap: 8px;
+    padding: 4px 6px;
+    font-size: 14px;
+	white-space: pre-line;
+    align-items: center;
+    background: var(--color-card);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Header: eigenes, unabhängiges Grid */
+.lt-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--color-card);
+    font-weight: 600;
+    padding: 6px;
+    border-bottom: 2px solid var(--color-border);
+
+    display: grid;
+    grid-template-columns: 120px 35px 30px 30px 30px;  /* bleibt fix */
+    gap: 8px;
+}
+
 /* ✅ Sticky Header oben fixiert */
 .lt-head {
     position: sticky;
@@ -870,26 +905,6 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     font-weight: 600;
     padding: 6px;
     border-bottom: 2px solid #1e2530;
-}
-
-/* Perfektes Grid für 5 Spalten */
-.lt-row {
-    display: grid;
-    grid-template-columns:
-       115px   /* Lektion */
-        25px   /* Karten */
-        25px   /* strong (✅) */
-        30px   /* weak   (🤔) */
-        30px;  /* unknown (❌) */
-
-    gap: 8px;
-    padding: 4px 6px;
-    font-size: 14px;
-	white-space: pre-line;
-    align-items: center;
-    background: var(--color-card);
-    border-radius: 6px;
-    cursor: pointer;
 }
 
 /* Farben */
