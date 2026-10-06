@@ -860,13 +860,25 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     gap: 4px;
 }
 
+/* ✅ Sticky Header oben fixiert */
+.lt-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--color-card);
+    border-bottom: 2px solid var(--color-border);
+    font-weight: 600;
+    padding: 6px;
+    border-bottom: 2px solid #1e2530;
+}
+
 /* Perfektes Grid für 5 Spalten */
 .lt-row {
     display: grid;
     grid-template-columns:
-       105px   /* Lektion */
-        30px   /* Karten */
-        30px   /* strong (✅) */
+       115px   /* Lektion */
+        25px   /* Karten */
+        25px   /* strong (✅) */
         30px   /* weak   (🤔) */
         30px;  /* unknown (❌) */
 
@@ -878,18 +890,6 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     background: var(--color-card);
     border-radius: 6px;
     cursor: pointer;
-}
-
-/* ✅ Sticky Header oben fixiert */
-.lt-head {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: var(--color-card);
-    border-bottom: 2px solid var(--color-border);
-    font-weight: 600;
-    padding: 6px;
-    border-bottom: 2px solid #1e2530;
 }
 
 /* Farben */
