@@ -891,7 +891,7 @@ header h1{margin:0 0 2px 0;font-size:26px;line-height:1.1}
     border-bottom: 2px solid var(--color-border);
 
     display: grid;
-    grid-template-columns: 120px 35px 30px 30px 30px;  /* bleibt fix */
+    grid-template-columns: 105px 35px 30px 30px 30px;  /* bleibt fix */
     gap: 8px;
 }
 
